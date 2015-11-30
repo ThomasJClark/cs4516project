@@ -5,14 +5,12 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-
-	"github.com/ThomasJClark/cs4516project"
 )
 
 func main() {
 	// Make an HTTP request to the server and print out the response
-	url := fmt.Sprintf("http://%s:8080", cs4516project.Server)
-	res, err := http.Get(url)
+	// url := fmt.Sprintf("http://%s:8080", cs4516project.Server)
+	res, err := http.Get("http://server:8080")
 	if err != nil {
 		log.Fatal(err)
 	}

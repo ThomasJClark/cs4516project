@@ -1,7 +1,7 @@
 #!/bin/sh
 
-# See addresses.go
 export NET="10.45.16.0/24"
+
 export SERVER="10.45.16.1"
 export SERVER_ROUTER="10.45.16.2"
 export SIFF_ROUTER1="10.45.16.3"
@@ -9,6 +9,14 @@ export SIFF_ROUTER2="10.45.16.4"
 export LEGACY_ROUTER="10.45.16.5"
 export CLIENT_ROUTER="10.45.16.6"
 export CLIENT="10.45.16.7"
+
+export HOSTS="$SERVER        server
+              $SERVER_ROUTER server-router
+              $SIFF_ROUTER1  siff-router1
+              $SIFF_ROUTER2  siff-router2
+              $LEGACY_ROUTER legacy-router
+              $CLIENT_ROUTER client-router
+              $CLIENT        client"
 
 # Add a route for the host to talk to the Docker containers
 sysctl net.ipv4.ip_forward=1
@@ -24,22 +32,25 @@ docker build -t legacy-router ./legacy-router/
 echo
 echo "============================= STARTING CONTAINERS =============================="
 docker run --name server --cap-add=NET_ADMIN -d siff-dr-server /bin/bash -c "
+    echo -e '$HOSTS' > /etc/hosts
     ip addr add $SERVER dev eth0
-    route add -host $LEGACY_ROUTER/32 eth0
+    route add -host legacy-router/32 eth0
     route del -net $NET
-    route add -net $NET gw $LEGACY_ROUTER
+    route add -net $NET gw legacy-router
     /go/bin/app"
 
 docker run --name legacy-router --cap-add=NET_ADMIN -d legacy-router /bin/bash -c "
+    echo -e '$HOSTS' > /etc/hosts
     ip addr add $LEGACY_ROUTER dev eth0
     route add -net $NET eth0
     sleep 100"
 
 docker run --name client --cap-add=NET_ADMIN --rm siff-dr-client /bin/bash -c "
+    echo -e '$HOSTS' > /etc/hosts
     ip addr add $CLIENT dev eth0
-    route add -host $LEGACY_ROUTER/32 eth0
+    route add -host legacy-router/32 eth0
     route del -net $NET
-    route add -net $NET gw $LEGACY_ROUTER
+    route add -net $NET gw legacy-router
     /go/bin/app"
 
 # When the client finishes running, stop all other contianers
