@@ -5,23 +5,14 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-	"os"
+
+	"github.com/ThomasJClark/cs4516project"
 )
-
-/*
-Return a full URL to request from the server.  This is determined based on
-some environment variables that Docker sets.
-*/
-func getServerURL() string {
-	addr := os.Getenv("SERVER_PORT_8080_TCP_ADDR")
-	port := os.Getenv("SERVER_PORT_8080_TCP_PORT")
-
-	return fmt.Sprintf("http://%s:%s", addr, port)
-}
 
 func main() {
 	// Make an HTTP request to the server and print out the response
-	res, err := http.Get(getServerURL())
+	url := fmt.Sprintf("http://%s:8080", cs4516project.Server)
+	res, err := http.Get(url)
 	if err != nil {
 		log.Fatal(err)
 	}
