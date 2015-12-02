@@ -35,8 +35,13 @@ import (
 	"fmt"
 	"unsafe"
 
+<<<<<<< HEAD
+	"github.com/google/gopacket"
+	"github.com/google/gopacket/layers"
+=======
 	"code.google.com/p/gopacket"
 	"code.google.com/p/gopacket/layers"
+>>>>>>> 413ab15... Adding netfilter library package
 )
 
 type NFPacket struct {
