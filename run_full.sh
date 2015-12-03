@@ -51,7 +51,7 @@ docker run --name server --cap-add=NET_ADMIN -d siff-dr-server /bin/bash -c "
 echo ""
 echo "Server router"
 echo ""
-docker run --name server-router --cap-add=NET_ADMIN --rm siff-dr-server-router /bin/bash -c "
+docker run --name server-router --cap-add=NET_ADMIN -d siff-dr-server-router /bin/bash -c "
     echo -e '$HOSTS' > /etc/hosts
     ip addr add $SERVER_ROUTER dev eth0
     route del -net $NET
@@ -61,8 +61,7 @@ docker run --name server-router --cap-add=NET_ADMIN --rm siff-dr-server-router /
     route add -host client/32 gw siff-router1
     route add -host siff-router2/32 gw siff-router2
     route add -host client-router/32 gw siff-router1
-    route
-    #iptables -P FORWARD DROP"
+    sleep 100"
 
 echo ""
 echo "Legacy router"
@@ -77,13 +76,12 @@ docker run --name legacy-router --cap-add=NET_ADMIN -d legacy-router /bin/bash -
     route add -host client/32 gw client-router
     route add -host siff-router1/32 gw server-router
     route add -host siff-router2/32 gw client-router
-    #iptables -P FORWARD DROP
-    sleep 1"
+    sleep 100"
 
 echo ""
 echo "SIFF router 1"
 echo ""
-docker run --name siff-router1 --cap-add=NET_ADMIN --rm siff-dr-router1 /bin/bash -c "
+docker run --name siff-router1 --cap-add=NET_ADMIN -d siff-dr-router1 /bin/bash -c "
     echo -e '$HOSTS' > /etc/hosts
     ip addr add $SIFF_ROUTER1 dev eth0
     route del -net $NET
@@ -94,13 +92,12 @@ docker run --name siff-router1 --cap-add=NET_ADMIN --rm siff-dr-router1 /bin/bas
     route add -host client gw siff-router2
     route add -host client-router gw siff-router2
     route add -host legacy-router gw server-router
-    route
-    sleep 1"
+    sleep 100"
 
 echo ""
 echo "SIFF router 2"
 echo ""
-docker run --name siff-router2 --cap-add=NET_ADMIN --rm siff-dr-router2 /bin/bash -c "
+docker run --name siff-router2 --cap-add=NET_ADMIN -d siff-dr-router2 /bin/bash -c "
     echo -e '$HOSTS' > /etc/hosts
     ip addr add $SIFF_ROUTER2 dev eth0
     route del -net $NET
@@ -110,13 +107,12 @@ docker run --name siff-router2 --cap-add=NET_ADMIN --rm siff-dr-router2 /bin/bas
     route add -host client gw client-router
     route add -host server gw siff-router1
     route add -host server-router gw siff-router1
-    route
-    sleep 1"
+    sleep 100"
 
 echo ""
 echo "Client router"
 echo ""
-docker run --name client-router --cap-add=NET_ADMIN --rm siff-dr-client-router /bin/bash -c "
+docker run --name client-router --cap-add=NET_ADMIN -d siff-dr-client-router /bin/bash -c "
     echo -e '$HOSTS' > /etc/hosts
     ip addr add $CLIENT_ROUTER dev eth0
     route del -net $NET
@@ -126,8 +122,7 @@ docker run --name client-router --cap-add=NET_ADMIN --rm siff-dr-client-router /
     route add -host siff-router1 gw siff-router2
     route add -host server-router gw siff-router2
     route add -host server gw siff-router2
-    route
-    sleep 1"
+    sleep 100"
 
 echo ""
 echo "Client"
@@ -139,7 +134,6 @@ docker run --name client --cap-add=NET_ADMIN --rm siff-dr-client /bin/bash -c "
     route add -host client-router/32 eth0
     route add -host server/32 gw client-router
     route add default gw client-router
-    route
     /go/bin/app"
 
 # When the client finishes running, stop all other contianers
