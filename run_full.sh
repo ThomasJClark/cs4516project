@@ -35,6 +35,9 @@ docker build -t siff-dr-server-router ./siff-dr-server-router/
 # to specify static IP addressess.
 echo
 echo "============================= STARTING CONTAINERS =============================="
+echo ""
+echo "Server"
+echo ""
 docker run --name server --cap-add=NET_ADMIN -d siff-dr-server /bin/bash -c "
     echo -e '$HOSTS' > /etc/hosts
     ip addr add $SERVER dev eth0
@@ -43,6 +46,9 @@ docker run --name server --cap-add=NET_ADMIN -d siff-dr-server /bin/bash -c "
     route add default gw server-router
     /go/bin/app"
 
+echo ""
+echo "Server router"
+echo ""
 docker run --name server-router --cap-add=NET_ADMIN --rm siff-dr-server-router /bin/bash -c "
     echo -e '$HOSTS' > /etc/hosts
     ip addr add $SERVER_ROUTER dev eth0
@@ -57,6 +63,9 @@ docker run --name server-router --cap-add=NET_ADMIN --rm siff-dr-server-router /
     #iptables -P FORWARD DROP
     /go/bin/app"
 
+echo ""
+echo "Legacy router"
+echo ""
 docker run --name legacy-router --cap-add=NET_ADMIN -d legacy-router /bin/bash -c "
     echo -e '$HOSTS' > /etc/hosts
     ip addr add $LEGACY_ROUTER dev eth0
@@ -70,6 +79,9 @@ docker run --name legacy-router --cap-add=NET_ADMIN -d legacy-router /bin/bash -
     #iptables -P FORWARD DROP
     sleep 100"
 
+echo ""
+echo "SIFF router 1"
+echo ""
 docker run --name siff-router1 --cap-add=NET_ADMIN --rm siff-dr-router1 /bin/bash -c "
     echo -e '$HOSTS' > /etc/hosts
     ip addr add $SIFF_ROUTER1 dev eth0
@@ -85,6 +97,9 @@ docker run --name siff-router1 --cap-add=NET_ADMIN --rm siff-dr-router1 /bin/bas
     #iptables -P FORWARD DROP
     /go/bin/app"
 
+echo ""
+echo "SIFF router 2"
+echo ""
 docker run --name siff-router2 --cap-add=NET_ADMIN --rm siff-dr-router2 /bin/bash -c "
     echo -e '$HOSTS' > /etc/hosts
     ip addr add $SIFF_ROUTER2 dev eth0
@@ -97,6 +112,9 @@ docker run --name siff-router2 --cap-add=NET_ADMIN --rm siff-dr-router2 /bin/bas
     route add -host server-router gw siff-router1
     /go/bin/app"
 
+echo ""
+echo "Client router"
+echo ""
 docker run --name client-router --cap-add=NET_ADMIN --rm siff-dr-client-router /bin/bash -c "
     echo -e '$HOSTS' > /etc/hosts
     ip addr add $CLIENT_ROUTER dev eth0
@@ -109,6 +127,8 @@ docker run --name client-router --cap-add=NET_ADMIN --rm siff-dr-client-router /
     route add -host server gw siff-router2
     /go/bin/app"
 
+echo "Client"
+echo ""
 docker run --name client --cap-add=NET_ADMIN --rm siff-dr-client /bin/bash -c "
     echo -e '$HOSTS' > /etc/hosts
     ip addr add $CLIENT dev eth0
