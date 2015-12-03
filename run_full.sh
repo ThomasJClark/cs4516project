@@ -71,7 +71,7 @@ docker run --name siff-router1 --cap-add=NET_ADMIN --rm siff-dr-router1 /bin/bas
     route del default
     route add -host server-router/32 eth0
     route add -host siff-router2/32 eth0
-    route add -host server/32 gw server-router
+    route add -host server gw server-router
     route
     #iptables -P FORWARD DROP
     /go/bin/app"
