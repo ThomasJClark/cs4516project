@@ -25,8 +25,8 @@ echo "=============================== BUILDING IMAGES ==========================
 docker build -t siff-dr-client ./siff-dr-client/
 docker build -t siff-dr-server ./siff-dr-server/
 docker build -t legacy-router ./legacy-router/
-docker build -t siff-dr-router1 ./siff-dr-router1/
-docker build -t siff-dr-router2 ./siff-dr-router2/
+docker build -t siff-dr-router1 ./siff-dr-router/
+docker build -t siff-dr-router2 ./siff-dr-router/
 docker build -t siff-dr-client-router ./siff-dr-client-router/
 docker build -t siff-dr-server-router ./siff-dr-server-router/
 
@@ -46,11 +46,11 @@ docker run --name server --cap-add=NET_ADMIN -d siff-dr-server /bin/bash -c "
 docker run --name server-router --cap-add=NET_ADMIN --rm siff-dr-server-router /bin/bash -c "
     echo -e '$HOSTS' > /etc/hosts
     ip addr add $SERVER_ROUTER dev eth0
-    sysctl net.ipv4.ip_forward=1
     route del -net $NET
     route add -host server/32 eth0
     route add -host siff-router1/32 eth0
     route add -host legacy-router/32 eth0
+    route
     #iptables -P FORWARD DROP
     /go/bin/app"
 
