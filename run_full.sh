@@ -44,6 +44,7 @@ docker run --name server --cap-add=NET_ADMIN -d siff-dr-server /bin/bash -c "
     route del -net $NET
     route add -host server-router/32 eth0
     route add default gw server-router
+    route add -host client/32 gw server-router
     /go/bin/app"
 
 echo ""
@@ -59,9 +60,8 @@ docker run --name server-router --cap-add=NET_ADMIN --rm siff-dr-server-router /
     route add -host client/32 gw siff-router1
     route add -host siff-router2/32 gw siff-router2
     route add -host client-router/32 gw siff-router1
-    route
-    #iptables -P FORWARD DROP
-    /go/bin/app"
+    #route
+    #iptables -P FORWARD DROP"
 
 echo ""
 echo "Legacy router"
@@ -93,9 +93,8 @@ docker run --name siff-router1 --cap-add=NET_ADMIN --rm siff-dr-router1 /bin/bas
     route add -host client gw siff-router2
     route add -host client-router gw siff-router2
     route add -host legacy-router gw server-router
-    route
-    #iptables -P FORWARD DROP
-    /go/bin/app"
+    #route
+    #iptables -P FORWARD DROP"
 
 echo ""
 echo "SIFF router 2"
@@ -109,8 +108,7 @@ docker run --name siff-router2 --cap-add=NET_ADMIN --rm siff-dr-router2 /bin/bas
     route add -host legacy-router gw client-router
     route add -host client gw client-router
     route add -host server gw siff-router1
-    route add -host server-router gw siff-router1
-    /go/bin/app"
+    route add -host server-router gw siff-router1"
 
 echo ""
 echo "Client router"
@@ -124,9 +122,9 @@ docker run --name client-router --cap-add=NET_ADMIN --rm siff-dr-client-router /
     route add -host legacy-router/32 eth0
     route add -host siff-router1 gw siff-router2
     route add -host server-router gw siff-router2
-    route add -host server gw siff-router2
-    /go/bin/app"
+    route add -host server gw siff-router2"
 
+echo ""
 echo "Client"
 echo ""
 docker run --name client --cap-add=NET_ADMIN --rm siff-dr-client /bin/bash -c "
@@ -134,6 +132,7 @@ docker run --name client --cap-add=NET_ADMIN --rm siff-dr-client /bin/bash -c "
     ip addr add $CLIENT dev eth0
     route del -net $NET
     route add -host client-router/32 eth0
+    route add -host server/32 gw client-router
     route add default gw client-router
     /go/bin/app"
 

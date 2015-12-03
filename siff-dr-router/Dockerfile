@@ -1,2 +1,2 @@
-FROM golang:1.5-onbuild
+FROM debian:jessie
 RUN apt-get update && apt-get install -y net-tools iptables
