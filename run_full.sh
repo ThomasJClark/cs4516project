@@ -27,8 +27,8 @@ docker build -t siff-dr-server ./siff-dr-server/
 docker build -t legacy-router ./legacy-router/
 docker build -t siff-dr-router1 ./siff-dr-router/
 docker build -t siff-dr-router2 ./siff-dr-router/
-docker build -t siff-dr-client-router ./siff-dr-client-router/
-docker build -t siff-dr-server-router ./siff-dr-server-router/
+docker build -t siff-dr-client-router ./siff-dr-router/
+docker build -t siff-dr-server-router ./siff-dr-router/
 
 # Start the containers.  Static IP addresses are set by adding "ip addr ..." to
 # the command that Docker runs, since Docker doesn't seem to just have an option
