@@ -38,72 +38,67 @@ echo "============================= STARTING CONTAINERS ========================
 docker run --name server --cap-add=NET_ADMIN -d siff-dr-server /bin/bash -c "
     echo -e '$HOSTS' > /etc/hosts
     ip addr add $SERVER dev eth0
+    route del -net $NET
     route add -host server-router/32 eth0
-    route del -net $NET
-    route add -net $NET gw server-router
-    /go/bin/app"
-
-docker run --name client --cap-add=NET_ADMIN --rm siff-dr-client /bin/bash -c "
-    echo -e '$HOSTS' > /etc/hosts
-    ip addr add $CLIENT dev eth0
-    route add -host client-router/32 eth0
-    route del -net $NET
-    route add -net $NET gw client-router
+    route add default gw server-router
     /go/bin/app"
 
 docker run --name server-router --cap-add=NET_ADMIN --rm siff-dr-server-router /bin/bash -c "
     echo -e '$HOSTS' > /etc/hosts
     ip addr add $SERVER_ROUTER dev eth0
+    sysctl net.ipv4.ip_forward=1
+    route del -net $NET
     route add -host server/32 eth0
     route add -host siff-router1/32 eth0
     route add -host legacy-router/32 eth0
-    route add -host client gw legacy-router
-    route del -net $NET
-    route add -net $NET eth0
-    /go/bin/app"
-
-docker run --name client-router --cap-add=NET_ADMIN --rm siff-dr-client-router /bin/bash -c "
-    echo -e '$HOSTS' > /etc/hosts
-    ip addr add $CLIENT_ROUTER dev eth0
-    route add -host client/32 eth0
-    route add -host siff-router2/32 eth0
-    route add -host legacy-router/32 eth0
-    route add -host server gw legacy-router
-    route del -net $NET
-    route add -net $NET eth0
+    #iptables -P FORWARD DROP
     /go/bin/app"
 
 docker run --name legacy-router --cap-add=NET_ADMIN -d legacy-router /bin/bash -c "
     echo -e '$HOSTS' > /etc/hosts
     ip addr add $LEGACY_ROUTER dev eth0
+    route del -net $NET
     route add -host server-router/32 eth0
     route add -host client-router/32 eth0
-    route add -host client gw client-router
     route add -host server gw server-router
-    route del -net $NET
-    route add -net $NET eth0
+    #iptables -P FORWARD DROP
     sleep 100"
 
 docker run --name siff-router1 --cap-add=NET_ADMIN --rm siff-dr-router1 /bin/bash -c "
     echo -e '$HOSTS' > /etc/hosts
     ip addr add $SIFF_ROUTER1 dev eth0
+    route del -net $NET
+    route del default
     route add -host server-router/32 eth0
     route add -host siff-router2/32 eth0
-    route add -host client gw siff-router2
-    route add -host server gw server-router
-    route del -net $NET
-    route add -net $NET eth0
+    route add -host server/32 gw server-router
+    route
+    #iptables -P FORWARD DROP
     /go/bin/app"
 
 docker run --name siff-router2 --cap-add=NET_ADMIN --rm siff-dr-router2 /bin/bash -c "
     echo -e '$HOSTS' > /etc/hosts
     ip addr add $SIFF_ROUTER2 dev eth0
+    route del -net $NET
     route add -host client-router/32 eth0
     route add -host siff-router1/32 eth0
-    route add -host client gw client-router
-    route add -host server gw siff-router1
+    /go/bin/app"
+
+docker run --name client-router --cap-add=NET_ADMIN --rm siff-dr-client-router /bin/bash -c "
+    echo -e '$HOSTS' > /etc/hosts
+    ip addr add $CLIENT_ROUTER dev eth0
     route del -net $NET
-    route add -net $NET eth0
+    route add -host client/32 eth0
+    route add -host siff-router2/32 eth0
+    route add -host legacy-router/32 eth0
+    /go/bin/app"
+
+docker run --name client --cap-add=NET_ADMIN --rm siff-dr-client /bin/bash -c "
+    echo -e '$HOSTS' > /etc/hosts
+    ip addr add $CLIENT dev eth0
+    route del -net $NET
+    route add -host client-router/32 eth0
+    route add default gw client-router
     /go/bin/app"
 
 # When the client finishes running, stop all other contianers
