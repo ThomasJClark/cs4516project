@@ -17,7 +17,7 @@ exists. Pass in the NFPacket, the flags (bitwise OR them if you need both), and
 the capabilities and capability updates arrays. If only IS_SIFF is set, just fill
 the last 4 bytes with dummy data, it'll be ignored. If you want to update specific
 fields, then use the [update function name here] function */
-func (packet NFPacket) setSiffFields(packet NFPacket, flags IPv4Flag, capabilities []IPv4Option) {
+func (packet NFPacket) setSiffFields(packet NFPacket, flags IPv4Flag, capabilities []IPv4Option, updoots []IPv4Option) {
 	var ipLayer *layers.IPv4
 
 	/* Get the IPv4 layer, and if it doesn't exist, keep doing shit
@@ -38,13 +38,6 @@ func (packet NFPacket) setSiffFields(packet NFPacket, flags IPv4Flag, capabiliti
 		(*ipLayer).IHL = 7
 	}
 
-	// add options
-	if flags == (IS_SIFF | CAPABILITY_UPDATE) {
-
-	} else {
-
-	}
-
 	/* change the total length by the change in IHL * 4 to convert from 
 	32-bit words to bytes */
 	IHLchange = *ipLayer.IHL - IHLchange
@@ -55,7 +48,12 @@ func (packet NFPacket) setSiffFields(packet NFPacket, flags IPv4Flag, capabiliti
 	(*ipLayer).Flags = flags
 
 	// handle the options
-	
+	// add options
+        if flags == (IS_SIFF | CAPABILITY_UPDATE) {
+                *ipLayer.Options = capabilities
+        } else {
+                append(capabilities, updoots...)
+        }
 
 	/* Serialize the ip layer */
 	b, err := something.Serialize(ipLayer)
