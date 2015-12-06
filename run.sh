@@ -1,5 +1,10 @@
 #!/bin/sh
 
+#setup virtual machine for a mac environment
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    eval "$(docker-machine env default)"
+fi
+
 export NET="10.45.16.0/24"
 
 export SERVER="10.45.16.1"
