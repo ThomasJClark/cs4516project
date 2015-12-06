@@ -24,5 +24,5 @@ func main() {
 
 	// If the network is working, this should print:
 	//     Got data: "Sample server data"
-	log.Println("Got data:", fmt.Sprintf("\"%s\"", string(body)))
+	log.Println("Client got data:", fmt.Sprintf("\"%s\"", string(body)))
 }
