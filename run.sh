@@ -64,7 +64,7 @@ docker run --name server-router --cap-add=NET_ADMIN -d -i=false -t siff-dr-serve
     route add -host legacy-router/32 eth0
     route add -host client/32 gw siff-router1
     route add -host siff-router2/32 gw siff-router2
-    route add -host client-router/32 gw siff-router1
+    route add -host client-router/32 gw legacy-router
     iptables -A FORWARD -j NFQUEUE --queue-num 0
     /go/bin/app"
 
@@ -80,7 +80,9 @@ docker run --name legacy-router --cap-add=NET_ADMIN -d -i=false -t legacy-router
     route add -host server gw server-router
     route add -host client/32 gw client-router
     route add -host siff-router1/32 gw server-router
-    route add -host siff-router2/32 gw client-router"
+    route add -host siff-router2/32 gw client-router
+    iptables -A FORWARD -j NFQUEUE --queue-num 0
+    /go/bin/app -drop 0"
 
 echo ""
 echo "SIFF router 1"
@@ -127,7 +129,7 @@ docker run --name client-router --cap-add=NET_ADMIN -d -i=false -t siff-dr-clien
     route add -host legacy-router/32 eth0
     route add -host siff-router1 gw siff-router2
     route add -host server-router gw siff-router2
-    route add -host server gw siff-router2
+    route add -host server gw legacy-router
     iptables -A FORWARD -j NFQUEUE --queue-num 0
     /go/bin/app"
 
