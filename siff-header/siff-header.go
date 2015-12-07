@@ -14,7 +14,7 @@ const (
 )
 
 /* https://www.youtube.com/watch?v=SLqGwX5Jl60 */
-func EveryVillainIsLemons(packet *netfilter.NFPacket) {
+func everyVillainIsLemons(packet *netfilter.NFPacket) {
 	var ipLayer *layers.IPv4
 
         /* Get the IPv4 layer, and if it doesn't exist, keep doing shit
