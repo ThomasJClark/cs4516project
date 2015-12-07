@@ -15,15 +15,16 @@ func processPackets() {
 	for packet := range nfq.GetPackets() {
 
         if ! isEvil(&packet) && isSiff(&packet) {
-            capability := getCapability(&packet)
+            capability := calcCapability(&packet)
             if isExp(&packet) {
                 addCapability(&packet, capability)
             } else {
-                if capability != getCapability(&packet) {
+                if capability != getCapabilities(&packet)[0] {
                     log.Println("Capability mismatch")
 		            packet.SetVerdict(netfilter.NF_DROP)
                 }
             }
+            shiftCapability(&packet)
 		    packet.SetVerdict(netfilter.NF_ACCEPT)
         } else {
 		    packet.SetVerdict(netfilter.NF_ACCEPT)
