@@ -25,7 +25,9 @@ func processPackets() {
                 key := "This is a secure key right?"
                 hash := sha1.New()
                 checksum := hash.Sum([]byte(value + key))
+                marking := checksum[len(checksum)-1]
             }
+		    packet.SetVerdict(netfilter.NF_ACCEPT)
         } else {
 		    packet.SetVerdict(netfilter.NF_ACCEPT)
         }
