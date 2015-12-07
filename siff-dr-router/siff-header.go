@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/google/gopacket/layers"
 	"github.com/ThomasJClark/cs4516project/pkg/go-netfilter-queue"
+    "crypto/sha1"
 )
 
 // SIFF constants
@@ -132,6 +133,21 @@ func getOptions(packet *netfilter.NFPacket) []layers.IPv4Option {
         }
 
         return (*ipLayer).Options
+}
+
+func getCapability(packet *netfilter.NFPacket) byte {
+    var ipLayer *layers.IPv4
+    /*Get the IPv4 layer, or ignore it if it doesn't exist. */
+    if layer := packet.Packet.Layer(layers.LayerTypeIPv4); layer != nil {
+        ipLayer = layer.(*layers.IPv4)
+        value := ipLayer.SrcIP.String() + ipLayer.DstIP.String()
+        key := "This is a secure key right?"
+        hash := sha1.New()
+        checksum := hash.Sum([]byte(value + key))
+        return checksum[len(checksum)-1]
+    }
+    var s byte
+    return s
 }
 
 func setCapabilities(packet *netfilter.NFPacket, capabilities []byte) {
