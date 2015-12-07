@@ -4,6 +4,7 @@ import (
 	"log"
 
 	"github.com/ThomasJClark/cs4516project/pkg/go-netfilter-queue"
+    "github.com/google/gopacket/layers"
 )
 
 func processPackets() {
@@ -14,7 +15,15 @@ func processPackets() {
 
 	for packet := range nfq.GetPackets() {
 
-		packet.SetVerdict(netfilter.NF_ACCEPT)
-
+        if ! isEvil(&packet) && isSiff(&packet) {
+            var ipLayer *layers.IPv4
+            /*Get the IPv4 layer, or ignore it if it doesn't exist. */
+            if layer := packet.Packet.Layer(layers.LayerTypeIPv4); layer != nil {
+                ipLayer = layer.(*layers.IPv4)
+                value := ipLayer.SrcIP.String() + ipLayer.DstIP.String()
+            }
+        } else {
+		    packet.SetVerdict(netfilter.NF_ACCEPT)
+        }
 	}
 }
