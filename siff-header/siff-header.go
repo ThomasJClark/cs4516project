@@ -45,7 +45,8 @@ func setSiffFields(packet *netfilter.NFPacket, flags layers.IPv4Flag, capabiliti
 		*ipLayer.length = *ipLayer.length + IHLchange * 4
 	}
 
-	(*ipLayer).Flags = flags
+	// set the flags, preserving the first flag bit in case it is used
+	(*ipLayer).Flags = ((*ipLayer).flags & (1 << 3)) | flags
 
 	// handle the options
 	// add options
