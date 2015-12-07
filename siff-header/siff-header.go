@@ -75,7 +75,7 @@ func isSiff(packet *netfilter.NFPacket) bool {
 	return (*ipLayer.IHL & 0x01) == IS_SIFF
 }
 
-func isSiff(packet *netfilter.NFPacket) bool {
+func hasCapabilityUpdate(packet *netfilter.NFPacket) bool {
         var ipLayer *layers.IPv4
 
         /* Get the IPv4 layer, and if it doesn't exist, keep doing shit
