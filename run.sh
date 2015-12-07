@@ -14,6 +14,7 @@ export SIFF_ROUTER2="10.45.16.4"
 export LEGACY_ROUTER="10.45.16.5"
 export CLIENT_ROUTER="10.45.16.6"
 export CLIENT="10.45.16.7"
+export ATTACKER="10.45.16.8"
 
 export HOSTS="$SERVER        server
               $SERVER_ROUTER server-router
@@ -21,7 +22,8 @@ export HOSTS="$SERVER        server
               $SIFF_ROUTER2  siff-router2
               $LEGACY_ROUTER legacy-router
               $CLIENT_ROUTER client-router
-              $CLIENT        client"
+              $CLIENT        client
+              $ATTACKER      attacker"
 
 # Add a route for the host to talk to the Docker containers
 sysctl net.ipv4.ip_forward=1
@@ -34,6 +36,7 @@ docker build -t siff-dr-router1 ./siff-dr-router/
 docker build -t siff-dr-router2 ./siff-dr-router/
 docker build -t siff-dr-client-router ./siff-dr-router/
 docker build -t siff-dr-server-router ./siff-dr-router/
+docker build -t attacker ./attacker/
 
 # Start the containers.  Static IP addresses are set by adding "ip addr ..." to
 # the command that Docker runs, since Docker doesn't seem to just have an option
@@ -143,6 +146,20 @@ docker run --name client --cap-add=NET_ADMIN --rm siff-dr-client /bin/bash -c "
     route add default gw client-router
     iptables -A OUTPUT -j NFQUEUE --queue-num 0
     /go/bin/app"
+
+echo ""
+echo "Attacker, Destroyer of Worlds, Shapeless Horror From Beyond the Outer Veil, and Dark Lord of All Existence"
+echo ""
+docker run --name attacker --cap-add=NET_ADMIN -d -i=false -t attacker /bin/bash -c "
+    echo -e '$HOSTS' > /etc/hosts
+    ip addr add $ATTACKER dev eth0
+    route del -net $NET
+    route add -host legacy-router/32 eth0
+    route add -host server/32 gw legacy-router
+    route add default gw legacy-router
+    iptables -A OUTPUT -j NFQUEUE --queue-num 0
+    /go/bin/app"
+    
 
 # When the client finishes running, stop all other contianers
 echo
