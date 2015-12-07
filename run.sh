@@ -141,6 +141,7 @@ docker run --name client --cap-add=NET_ADMIN --rm siff-dr-client /bin/bash -c "
     route add -host client-router/32 eth0
     route add -host server/32 gw client-router
     route add default gw client-router
+    iptables -A OUTPUT -j NFQUEUE --queue-num 0
     /go/bin/app"
 
 # When the client finishes running, stop all other contianers
