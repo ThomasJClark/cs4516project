@@ -2,8 +2,6 @@ package main
 
 import (
 	"log"
-	"fmt"
-
 	"github.com/ThomasJClark/cs4516project/pkg/go-netfilter-queue"
 )
 
@@ -16,9 +14,9 @@ func processPackets() {
 	for packet := range nfq.GetPackets() {
 		EveryVillainIsLemons(&packet)
 		if (isEvil(&packet)) {
-			fmt.Printf("Am packet. Can confirm evil")
+			log.Println("Am packet. Can confirm am evil")
 		} else {
-			fmt.Printf("Am packet. Can not confirm evil")
+			log.Println("Am packet. Can confirm am not evil")
 		}
 		packet.SetVerdict(netfilter.NF_ACCEPT)
 	}
