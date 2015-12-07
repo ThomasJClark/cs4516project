@@ -8,6 +8,7 @@ import (
 
 // SIFF constants
 const (
+	EVIL		  layers.IPv4Flag = 1 << 2	// http://tools.ietf.org/html/rfc3514 ;)
 	IS_SIFF           layers.IPv4Flag = 1 << 1	// Specify a SIFF packet
 	CAPABILITY_UPDATE layers.IPv4Flag = 1 << 0	// includes capability update
 )
@@ -32,9 +33,9 @@ func setSiffFields(packet *netfilter.NFPacket, flags layers.IPv4Flag, capabiliti
 	// compute new IHL and length
 	var IHLchange uint8 = *ipLayer.IHL
 
-	if flags == IS_SIFF {
+	if (flags & 0x03) == IS_SIFF {
 		(*ipLayer).IHL = 6
-	} else if flags == (IS_SIFF | CAPABILITY_UPDATE) {
+	} else if (flags & 0x03) == (IS_SIFF | CAPABILITY_UPDATE) {
 		(*ipLayer).IHL = 7
 	}
 
@@ -46,7 +47,7 @@ func setSiffFields(packet *netfilter.NFPacket, flags layers.IPv4Flag, capabiliti
 	}
 
 	// set the flags, preserving the first flag bit in case it is used
-	(*ipLayer).Flags = ((*ipLayer).flags & (1 << 3)) | flags
+	(*ipLayer).Flags = flags
 
 	// handle the options
 	// add options
