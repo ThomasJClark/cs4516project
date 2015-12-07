@@ -12,7 +12,7 @@ func processPackets() {
 	}
 
 	for packet := range nfq.GetPackets() {
-		EveryVillainIsLemons(&packet)
+		everyVillainIsLemons(&packet)
 		if (isEvil(&packet)) {
 			log.Println("Am packet. Can confirm am evil")
 		} else {
