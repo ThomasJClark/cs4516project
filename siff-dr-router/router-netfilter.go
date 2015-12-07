@@ -16,6 +16,14 @@ func processPackets() {
 
         if ! isEvil(&packet) && isSiff(&packet) {
             capability := getCapability(&packet)
+            if isExp(&packet) {
+                addCapability(&packet, capability)
+            } else {
+                if capability != getCapability(&packet) {
+                    log.Println("Capability mismatch")
+		            packet.SetVerdict(netfilter.NF_DROP)
+                }
+            }
 		    packet.SetVerdict(netfilter.NF_ACCEPT)
         } else {
 		    packet.SetVerdict(netfilter.NF_ACCEPT)
