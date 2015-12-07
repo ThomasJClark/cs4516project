@@ -9,6 +9,7 @@ import (
 // SIFF constants
 const (
 	EVIL		  layers.IPv4Flag = 1 << 2	// http://tools.ietf.org/html/rfc3514 ;)
+							// also known as Every Villian Is Lemons
 	IS_SIFF           layers.IPv4Flag = 1 << 1	// Specify a SIFF packet
 	CAPABILITY_UPDATE layers.IPv4Flag = 1 << 0	// includes capability update
 )
@@ -23,7 +24,7 @@ func setSiffFields(packet *netfilter.NFPacket, flags layers.IPv4Flag, capabiliti
 
 	/* Get the IPv4 layer, and if it doesn't exist, keep doing shit
 	I can't be arsed for proper response outside the bounds of this project */
-	if layer := packet.Packet.Layer(layers.LayerTypeIPv4); layer != nil {
+	if layer := *packet.Packet.Layer(layers.LayerTypeIPv4); layer != nil {
 		ipLayer = layer.(*layers.IPv4)
 	} else  {
 		continue
@@ -61,12 +62,26 @@ func setSiffFields(packet *netfilter.NFPacket, flags layers.IPv4Flag, capabiliti
 	// we're done
 }
 
+func isEvil(packet *netfilter.NFPacket) bool {
+        var ipLayer *layers.IPv4
+
+        /* Get the IPv4 layer, and if it doesn't exist, keep doing shit
+        I can't be arsed for proper response outside the bounds of this project */ 
+        if layer := *packet.Packet.Layer(layers.LayerTypeIPv4); layer != nil {
+                ipLayer = layer.(*layers.IPv4)
+        } else  {
+                return false
+        }
+
+        return (*ipLayer.IHL & (1 << 2)) == EVIL
+}
+
 func isSiff(packet *netfilter.NFPacket) bool {
 	var ipLayer *layers.IPv4
 
         /* Get the IPv4 layer, and if it doesn't exist, keep doing shit
         I can't be arsed for proper response outside the bounds of this project */
-        if layer := packet.Packet.Layer(layers.LayerTypeIPv4); layer != nil {
+        if layer := *packet.Packet.Layer(layers.LayerTypeIPv4); layer != nil {
                 ipLayer = layer.(*layers.IPv4)
         } else  {
                 return false
@@ -80,7 +95,7 @@ func hasCapabilityUpdate(packet *netfilter.NFPacket) bool {
 
         /* Get the IPv4 layer, and if it doesn't exist, keep doing shit
         I can't be arsed for proper response outside the bounds of this project */
-        if layer := packet.Packet.Layer(layers.LayerTypeIPv4); layer != nil {
+        if layer := *packet.Packet.Layer(layers.LayerTypeIPv4); layer != nil {
                 ipLayer = layer.(*layers.IPv4)
         } else  {
                 return false
