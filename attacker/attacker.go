@@ -14,7 +14,7 @@ func main() {
 
 	// Make an HTTP request to the server and print out the response
 	// url := fmt.Sprintf("http://%s:8080", cs4516project.Server)
-	res, err := http.Get("http://notserver:8080")
+	res, err := http.Get("http://server:8080")
 	if err != nil {
 		log.Fatal(err)
 	}
