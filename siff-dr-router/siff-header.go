@@ -75,7 +75,7 @@ func setSiffFields(packet *netfilter.NFPacket, flags layers.IPv4Flag, capabiliti
                 (*ipLayer).Options = optionArray
         } else if (uint8(flags) & 0x3) == uint8(IS_SIFF) {
                 var new_capabilities []layers.IPv4Option
-		new_capabilities[0] = capabilities
+		new_capabilities = append(new_capabilities, capabilities)
 		(*ipLayer).Options = new_capabilities
         }
 
@@ -281,11 +281,11 @@ func shiftCapability(packet *netfilter.NFPacket) {
             ipLayer = layer.(*layers.IPv4)
     }
     
-    length := (*ipLayer).Options[0].OptionLength
+    length := int((*ipLayer).Options[0].OptionLength)
     if length == 0 {
         return
     }
-    for i := 1; i < int(length); i++ {
+    for i := 1; i < length; i++ {
         (*ipLayer).Options[0].OptionData[i - 1] = (*ipLayer).Options[0].OptionData[i - 1]
     }
     (*ipLayer).Options[0].OptionData = (*ipLayer).Options[0].OptionData[:length - 1]

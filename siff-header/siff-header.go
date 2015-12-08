@@ -75,7 +75,7 @@ func setSiffFields(packet *netfilter.NFPacket, flags layers.IPv4Flag, capabiliti
                 (*ipLayer).Options = optionArray
         } else if (uint8(flags) & 0x3) == uint8(IS_SIFF) {
                 var new_capabilities []layers.IPv4Option
-		new_capabilities[0] = capabilities
+		new_capabilities = append(new_capabilities, capabilities)
 		(*ipLayer).Options = new_capabilities
         }
 
