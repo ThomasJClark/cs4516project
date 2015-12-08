@@ -1,152 +1,152 @@
 package main
 
 import (
-    "log"
-    // "github.com/google/gopacket/layers"
-    "github.com/ThomasJClark/cs4516project/pkg/go-netfilter-queue"
+	"log"
+	// "github.com/google/gopacket/layers"
+	"github.com/ThomasJClark/cs4516project/pkg/go-netfilter-queue"
 )
 
 func processPackets() {
-    nfq, err := netfilter.NewNFQueue(0, 100000, 0xffff)
-    if err != nil {
-        log.Fatal(err)
-    }
+	nfq, err := netfilter.NewNFQueue(0, 100000, 0xffff)
+	if err != nil {
+		log.Fatal(err)
+	}
 
-    for packet := range nfq.GetPackets() {
-        everyVillainIsLemons(&packet)
-        if (isEvil(&packet)) {
-            log.Println("Am packet. Can confirm am evil")
-        } else {
-            log.Println("Am packet. Can confirm am not evil")
-        }
-        
-        //////////////////////////////////////////////
-        //// UNCOMMENT THE FOLLOWING TO RUN TESTS ////
-        //////////////////////////////////////////////
-        // Also uncomment the import of layers at the top
+	for packet := range nfq.GetPackets() {
+		everyVillainIsLemons(&packet)
+		if isEvil(&packet) {
+			log.Println("Am packet. Can confirm am evil")
+		} else {
+			log.Println("Am packet. Can confirm am not evil")
+		}
 
-        // Test setSiffFields
-        // log.Println("setSiffFields Test")
-        // log.Println("isSiff Test")
-        // setSiffFields(&packet, IS_SIFF, []byte{0, 1, 2, 3}, []byte{4, 5, 6, 7})
-        // if (isSiff(&packet)) {
-        //  log.Println("Siff packet")
-        // } else {
-        //  log.Println("Not SIFF packet")
-        // }
+		//////////////////////////////////////////////
+		//// UNCOMMENT THE FOLLOWING TO RUN TESTS ////
+		//////////////////////////////////////////////
+		// Also uncomment the import of layers at the top
 
-        // var options []layers.IPv4Option = getOptions(&packet)
+		// Test setSiffFields
+		// log.Println("setSiffFields Test")
+		// log.Println("isSiff Test")
+		// setSiffFields(&packet, IS_SIFF, []byte{0, 1, 2, 3}, []byte{4, 5, 6, 7})
+		// if (isSiff(&packet)) {
+		//  log.Println("Siff packet")
+		// } else {
+		//  log.Println("Not SIFF packet")
+		// }
 
-        // log.Println("Capabilities:")
-        // log.Println("\tLength: ", len(options))
-        // log.Println("\t", options[0].OptionData[0], options[0].OptionData[1], options[0].OptionData[2], options[0].OptionData[3])
+		// var options []layers.IPv4Option = getOptions(&packet)
 
-        // log.Println("HasCapabilityUpdate Test")
-        // setSiffFields(&packet, IS_SIFF | CAPABILITY_UPDATE, []byte{0, 1, 2, 3}, []byte{4, 5, 6, 7})
-        // if (hasCapabilityUpdate(&packet)) {
-        //  log.Println("Has Capability Updates")
-        // } else {
-        //  log.Println("Does Not Have Capability Updates")
-        // }
+		// log.Println("Capabilities:")
+		// log.Println("\tLength: ", len(options))
+		// log.Println("\t", options[0].OptionData[0], options[0].OptionData[1], options[0].OptionData[2], options[0].OptionData[3])
 
-        // options = getOptions(&packet)
+		// log.Println("HasCapabilityUpdate Test")
+		// setSiffFields(&packet, IS_SIFF | CAPABILITY_UPDATE, []byte{0, 1, 2, 3}, []byte{4, 5, 6, 7})
+		// if (hasCapabilityUpdate(&packet)) {
+		//  log.Println("Has Capability Updates")
+		// } else {
+		//  log.Println("Does Not Have Capability Updates")
+		// }
 
-        // log.Println("Updates:")
-        // log.Println("\tLength: ", len(options))
-        // log.Println("\t", options[1].OptionData[0], options[1].OptionData[1], options[1].OptionData[2], options[1].OptionData[3])
+		// options = getOptions(&packet)
 
-        // // end test setSiffFields
+		// log.Println("Updates:")
+		// log.Println("\tLength: ", len(options))
+		// log.Println("\t", options[1].OptionData[0], options[1].OptionData[1], options[1].OptionData[2], options[1].OptionData[3])
 
-        // // test setCapabilities
-        // log.Println("SetCapabilities test")
-        // setCapabilities(&packet, []byte{8})
+		// // end test setSiffFields
 
-        // options = getOptions(&packet)
+		// // test setCapabilities
+		// log.Println("SetCapabilities test")
+		// setCapabilities(&packet, []byte{8})
 
-        // log.Println("Results:")
-        // log.Println("\tLength:", len(options[0].OptionData))
-        // log.Println("\t", options[0].OptionData[0])
+		// options = getOptions(&packet)
 
-        // // end test setCapabilities
-        // // test addCapability
-        // addCapability(&packet, 9)
+		// log.Println("Results:")
+		// log.Println("\tLength:", len(options[0].OptionData))
+		// log.Println("\t", options[0].OptionData[0])
 
-        // options = getOptions(&packet)
+		// // end test setCapabilities
+		// // test addCapability
+		// addCapability(&packet, 9)
 
-        // log.Println("Results:")
-        // log.Println("\tLength:", len(options[0].OptionData))
-        // log.Println("\t", options[0].OptionData[0], options[0].OptionData[1])
+		// options = getOptions(&packet)
 
-        // addCapability(&packet, 10)
+		// log.Println("Results:")
+		// log.Println("\tLength:", len(options[0].OptionData))
+		// log.Println("\t", options[0].OptionData[0], options[0].OptionData[1])
 
-        // options = getOptions(&packet)
+		// addCapability(&packet, 10)
 
-        // log.Println("Results:")
-        // log.Println("\tLength:", len(options[0].OptionData))
-        // log.Println("\t", options[0].OptionData[0], options[0].OptionData[1], options[0].OptionData[2])
+		// options = getOptions(&packet)
 
-        // addCapability(&packet, 11)
+		// log.Println("Results:")
+		// log.Println("\tLength:", len(options[0].OptionData))
+		// log.Println("\t", options[0].OptionData[0], options[0].OptionData[1], options[0].OptionData[2])
 
-        // options = getOptions(&packet)
+		// addCapability(&packet, 11)
 
-        // log.Println("Results:")
-        // log.Println("\tLength:", len(options[0].OptionData))
-        // log.Println("\t", options[0].OptionData[0], options[0].OptionData[1], options[0].OptionData[2], options[0].OptionData[3])
+		// options = getOptions(&packet)
 
-        // addCapability(&packet, 12)
+		// log.Println("Results:")
+		// log.Println("\tLength:", len(options[0].OptionData))
+		// log.Println("\t", options[0].OptionData[0], options[0].OptionData[1], options[0].OptionData[2], options[0].OptionData[3])
 
-        // options = getOptions(&packet)
+		// addCapability(&packet, 12)
 
-        // log.Println("Results:")
-        // log.Println("\tLength:", len(options[0].OptionData))
-        // log.Println("\t", options[0].OptionData[0], options[0].OptionData[1], options[0].OptionData[2], options[0].OptionData[3])
+		// options = getOptions(&packet)
 
-        // // end test addCapability
-        
-        // // test setUpdate
-        // log.Println("SetUpdates test")
-        // setUpdates(&packet, []byte{13})
+		// log.Println("Results:")
+		// log.Println("\tLength:", len(options[0].OptionData))
+		// log.Println("\t", options[0].OptionData[0], options[0].OptionData[1], options[0].OptionData[2], options[0].OptionData[3])
 
-        // options = getOptions(&packet)
+		// // end test addCapability
 
-        // log.Println("Results:")
-        // log.Println("\tLength:", len(options[1].OptionData))
-        // log.Println("\t", options[1].OptionData[0])
+		// // test setUpdate
+		// log.Println("SetUpdates test")
+		// setUpdates(&packet, []byte{13})
 
-        // // end test setUpdate
-        // // test addUpdate
-        // addUpdate(&packet, 14)
+		// options = getOptions(&packet)
 
-        // options = getOptions(&packet)
+		// log.Println("Results:")
+		// log.Println("\tLength:", len(options[1].OptionData))
+		// log.Println("\t", options[1].OptionData[0])
 
-        // log.Println("Results:")
-        // log.Println("\tLength:", len(options[1].OptionData))
-        // log.Println("\t", options[1].OptionData[0], options[1].OptionData[1])
+		// // end test setUpdate
+		// // test addUpdate
+		// addUpdate(&packet, 14)
 
-        // addUpdate(&packet, 15)
+		// options = getOptions(&packet)
 
-        // options = getOptions(&packet)
+		// log.Println("Results:")
+		// log.Println("\tLength:", len(options[1].OptionData))
+		// log.Println("\t", options[1].OptionData[0], options[1].OptionData[1])
 
-        // log.Println("Results:")
-        // log.Println("\tLength:", len(options[1].OptionData))
-        // log.Println("\t", options[1].OptionData[0], options[1].OptionData[1], options[1].OptionData[2])
+		// addUpdate(&packet, 15)
 
-        // addUpdate(&packet, 16)
+		// options = getOptions(&packet)
 
-        // options = getOptions(&packet)
+		// log.Println("Results:")
+		// log.Println("\tLength:", len(options[1].OptionData))
+		// log.Println("\t", options[1].OptionData[0], options[1].OptionData[1], options[1].OptionData[2])
 
-        // log.Println("Results:")
-        // log.Println("\tLength:", len(options[1].OptionData))
-        // log.Println("\t", options[1].OptionData[0], options[1].OptionData[1], options[1].OptionData[2], options[1].OptionData[3])
+		// addUpdate(&packet, 16)
 
-        // addUpdate(&packet, 17)
+		// options = getOptions(&packet)
 
-        // options = getOptions(&packet)
+		// log.Println("Results:")
+		// log.Println("\tLength:", len(options[1].OptionData))
+		// log.Println("\t", options[1].OptionData[0], options[1].OptionData[1], options[1].OptionData[2], options[1].OptionData[3])
 
-        // log.Println("Results:")
-        // log.Println("\tLength:", len(options[1].OptionData))
-        // log.Println("\t", options[1].OptionData[0], options[1].OptionData[1], options[1].OptionData[2], options[1].OptionData[3])
+		// addUpdate(&packet, 17)
 
-        packet.SetVerdict(netfilter.NF_ACCEPT)
-    }
+		// options = getOptions(&packet)
+
+		// log.Println("Results:")
+		// log.Println("\tLength:", len(options[1].OptionData))
+		// log.Println("\t", options[1].OptionData[0], options[1].OptionData[1], options[1].OptionData[2], options[1].OptionData[3])
+
+		packet.SetVerdict(netfilter.NF_ACCEPT)
+	}
 }

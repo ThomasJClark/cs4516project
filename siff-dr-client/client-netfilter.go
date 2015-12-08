@@ -34,15 +34,11 @@ func processPackets() {
 
 	for packet := range nfq.GetPackets() {
 		log.Println("Adding SIFF headers")
-		var caps layers.IPv4Option
-		var upds layers.IPv4Option
-		caps.OptionLength = 0
-		upds.OptionLength = 0
 		var empty []byte
 		var empty2 []byte
-		caps.OptionData = empty
-		upds.OptionData = empty2
-		setSiffFields(&packet, IS_SIFF, caps, upds)
+		var flags layers.IPv4Flag
+		flags |= IS_SIFF
+		setSiffFields(&packet, flags, empty, empty2)
 
 		var ipLayer *layers.IPv4
 		/* Get the IPv4 layer, and if it doesn't exist, keep doing shit
@@ -51,6 +47,7 @@ func processPackets() {
 			ipLayer = layer.(*layers.IPv4)
 		} else {
 			// maybe do something?
+			log.Println("Failed to get ip layer")
 		}
 
 		serializedPacket, err := Serialize(ipLayer)

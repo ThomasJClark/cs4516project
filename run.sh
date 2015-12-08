@@ -65,7 +65,7 @@ docker run --name server-router --cap-add=NET_ADMIN -d -i=false -t siff-dr-serve
     route add -host server/32 eth0
     route add -host siff-router1/32 eth0
     route add -host legacy-router/32 eth0
-    route add -host client/32 gw siff-router1
+    route add -host client/32 gw legacy-router #siff-router1
     route add -host siff-router2/32 gw siff-router2
     route add -host client-router/32 gw legacy-router
     iptables -A FORWARD -j NFQUEUE --queue-num 0
@@ -149,18 +149,18 @@ docker run --name client --cap-add=NET_ADMIN --rm siff-dr-client /bin/bash -c "
     iptables -A OUTPUT -j NFQUEUE --queue-num 0
     /go/bin/app"
 
-echo ""
-echo "Attacker, Destroyer of Worlds, Shapeless Horror From Beyond the Outer Veil, and Dark Lord of All Existence"
-echo ""
-docker run --name attacker --cap-add=NET_ADMIN --rm attacker /bin/bash -c "
-    echo -e '$HOSTS' > /etc/hosts
-    ip addr add $ATTACKER dev eth0
-    route del -net $NET
-    route add -host legacy-router/32 eth0
-    route add -host server/32 gw legacy-router
-    route add default gw legacy-router
-    iptables -A OUTPUT -j NFQUEUE --queue-num 0
-    /go/bin/app"
+#echo ""
+#echo "Attacker, Destroyer of Worlds, Shapeless Horror From Beyond the Outer Veil, and Dark Lord of All Existence"
+#echo ""
+#docker run --name attacker --cap-add=NET_ADMIN --rm attacker /bin/bash -c "
+    #echo -e '$HOSTS' > /etc/hosts
+    #ip addr add $ATTACKER dev eth0
+    #route del -net $NET
+    #route add -host legacy-router/32 eth0
+    #route add -host server/32 gw legacy-router
+    #route add default gw legacy-router
+    #iptables -A OUTPUT -j NFQUEUE --queue-num 0
+    #/go/bin/app"
     
 
 # When the client finishes running, stop all other contianers

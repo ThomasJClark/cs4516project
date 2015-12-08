@@ -36,7 +36,7 @@ func processPackets() {
 	for packet := range nfq.GetPackets() {
 		log.Println("Got packet")
 
-		if !isEvil(&packet) && isSiff(&packet) {
+		if isSiff(&packet) {
 			capability := calcCapability(&packet)
 			if isExp(&packet) {
 				addCapability(&packet, capability)
@@ -65,7 +65,7 @@ func processPackets() {
 				packet.SetResult(netfilter.NF_ACCEPT, serializedPacket)
 			}
 		} else {
-			packet.SetVerdict(netfilter.NF_ACCEPT)
+			packet.SetVerdict(netfilter.NF_DROP)
 		}
 	}
 }
