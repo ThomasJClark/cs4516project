@@ -132,7 +132,7 @@ docker run --name client-router --cap-add=NET_ADMIN -d -i=false -t siff-dr-clien
     route add -host legacy-router/32 eth0
     route add -host siff-router1 gw siff-router2
     route add -host server-router gw siff-router2
-    route add -host server gw legacy-router
+    route add -host server gw siff-router2 #legacy-router
     iptables -A FORWARD -j NFQUEUE --queue-num 0
     /go/bin/app"
 

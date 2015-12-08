@@ -33,6 +33,7 @@ func processPackets() {
 	}
 
 	for packet := range nfq.GetPackets() {
+        log.Println("Adding SIFF headers")
         var caps layers.IPv4Option
         var upds layers.IPv4Option
         caps.OptionLength = 0

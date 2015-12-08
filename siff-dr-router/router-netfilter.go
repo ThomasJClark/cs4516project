@@ -27,12 +27,14 @@ func Serialize(ipLayer *layers.IPv4) ([]byte, error) {
 }
 
 func processPackets() {
+    log.Println("Starting router queue")
 	nfq, err := netfilter.NewNFQueue(0, 100000, 0xffff)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	for packet := range nfq.GetPackets() {
+        log.Println("Got packet")
 
         if ! isEvil(&packet) && isSiff(&packet) {
             capability := calcCapability(&packet)
