@@ -10,7 +10,7 @@ import (
 func main() {
 
 	//Start up netfilter queue
-	go processPackets();
+	go processPackets()
 
 	// Make an HTTP request to the server and print out the response
 	// url := fmt.Sprintf("http://%s:8080", cs4516project.Server)

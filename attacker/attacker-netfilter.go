@@ -1,8 +1,8 @@
 package main
 
 import (
-	"log"
 	"github.com/ThomasJClark/cs4516project/pkg/go-netfilter-queue"
+	"log"
 )
 
 func processPackets() {
@@ -13,7 +13,7 @@ func processPackets() {
 
 	for packet := range nfq.GetPackets() {
 		everyVillainIsLemons(&packet)
-		if (isEvil(&packet)) {
+		if isEvil(&packet) {
 			log.Println("Am packet. Can confirm am evil")
 		} else {
 			log.Println("Am packet. Can confirm am not evil")

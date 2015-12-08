@@ -1,31 +1,31 @@
 package main
 
 import (
-	"github.com/google/gopacket/layers"
+	"crypto/sha1"
 	"github.com/ThomasJClark/cs4516project/pkg/go-netfilter-queue"
-    "crypto/sha1"
+	"github.com/google/gopacket/layers"
 )
 
 // SIFF constants
 const (
-	EXP		      layers.IPv4Flag = 1 << 3	// http://tools.ietf.org/html/rfc3514 ;)
-	EVIL		  layers.IPv4Flag = 1 << 2	// http://tools.ietf.org/html/rfc3514 ;)
-							// also known as Every Villian Is Lemons
-	IS_SIFF           layers.IPv4Flag = 1 << 1	// Specify a SIFF packet
-	CAPABILITY_UPDATE layers.IPv4Flag = 1 << 0	// includes capability update
+	EXP  layers.IPv4Flag = 1 << 3 // http://tools.ietf.org/html/rfc3514 ;)
+	EVIL layers.IPv4Flag = 1 << 2 // http://tools.ietf.org/html/rfc3514 ;)
+	// also known as Every Villian Is Lemons
+	IS_SIFF           layers.IPv4Flag = 1 << 1 // Specify a SIFF packet
+	CAPABILITY_UPDATE layers.IPv4Flag = 1 << 0 // includes capability update
 )
 
 /* https://www.youtube.com/watch?v=SLqGwX5Jl60 */
 func everyVillainIsLemons(packet *netfilter.NFPacket) {
 	var ipLayer *layers.IPv4
 
-        /* Get the IPv4 layer, and if it doesn't exist, keep doing shit
-        I can't be arsed for proper response outside the bounds of this project */
-        if layer := (*packet).Packet.Layer(layers.LayerTypeIPv4); layer != nil {
-                ipLayer = layer.(*layers.IPv4)
-        } else  {
-                // maybe do something?
-        }
+	/* Get the IPv4 layer, and if it doesn't exist, keep doing shit
+	   I can't be arsed for proper response outside the bounds of this project */
+	if layer := (*packet).Packet.Layer(layers.LayerTypeIPv4); layer != nil {
+		ipLayer = layer.(*layers.IPv4)
+	} else {
+		// maybe do something?
+	}
 
 	(*ipLayer).Flags = (*ipLayer).Flags | EVIL
 }
@@ -42,7 +42,7 @@ func setSiffFields(packet *netfilter.NFPacket, flags layers.IPv4Flag, capabiliti
 	I can't be arsed for proper response outside the bounds of this project */
 	if layer := (*packet).Packet.Layer(layers.LayerTypeIPv4); layer != nil {
 		ipLayer = layer.(*layers.IPv4)
-	} else  {
+	} else {
 		// maybe do something?
 	}
 
@@ -56,11 +56,11 @@ func setSiffFields(packet *netfilter.NFPacket, flags layers.IPv4Flag, capabiliti
 		(*ipLayer).IHL = 7
 	}
 
-	/* change the total length by the change in IHL * 4 to convert from 
+	/* change the total length by the change in IHL * 4 to convert from
 	32-bit words to bytes */
 	IHLchange = (*ipLayer).IHL - IHLchange
 	if IHLchange != 0 {
-		(*ipLayer).Length = (*ipLayer).Length + uint16(IHLchange) * 4
+		(*ipLayer).Length = (*ipLayer).Length + uint16(IHLchange)*4
 	}
 
 	// set the flags, preserving the first flag bit in case it is used
@@ -68,117 +68,117 @@ func setSiffFields(packet *netfilter.NFPacket, flags layers.IPv4Flag, capabiliti
 
 	// handle the options
 	// add options
-        if (uint8(flags) & 0x3) == uint8(IS_SIFF | CAPABILITY_UPDATE) {
+	if (uint8(flags) & 0x3) == uint8(IS_SIFF|CAPABILITY_UPDATE) {
 		var optionArray []layers.IPv4Option
 		optionArray[0] = capabilities
 		optionArray[1] = updoots
-                (*ipLayer).Options = optionArray
-        } else if (uint8(flags) & 0x3) == uint8(IS_SIFF) {
-                var new_capabilities []layers.IPv4Option
+		(*ipLayer).Options = optionArray
+	} else if (uint8(flags) & 0x3) == uint8(IS_SIFF) {
+		var new_capabilities []layers.IPv4Option
 		new_capabilities = append(new_capabilities, capabilities)
 		(*ipLayer).Options = new_capabilities
-        }
+	}
 
 	// we're done
 }
 
 func isEvil(packet *netfilter.NFPacket) bool {
-        var ipLayer *layers.IPv4
+	var ipLayer *layers.IPv4
 
-        /* Get the IPv4 layer, and if it doesn't exist, keep doing shit
-        I can't be arsed for proper response outside the bounds of this project */ 
-        if layer := (*packet).Packet.Layer(layers.LayerTypeIPv4); layer != nil {
-                ipLayer = layer.(*layers.IPv4)
-        } else  {
-                // maybe do something?
-        }
+	/* Get the IPv4 layer, and if it doesn't exist, keep doing shit
+	   I can't be arsed for proper response outside the bounds of this project */
+	if layer := (*packet).Packet.Layer(layers.LayerTypeIPv4); layer != nil {
+		ipLayer = layer.(*layers.IPv4)
+	} else {
+		// maybe do something?
+	}
 
-        return (uint8((*ipLayer).IHL) & (1 << 2)) == uint8(EVIL)
+	return (uint8((*ipLayer).IHL) & (1 << 2)) == uint8(EVIL)
 }
 
 func isSiff(packet *netfilter.NFPacket) bool {
 	var ipLayer *layers.IPv4
 
-    /* Get the IPv4 layer, and if it doesn't exist, keep doing shit
-    I can't be arsed for proper response outside the bounds of this project */
-    if layer := (*packet).Packet.Layer(layers.LayerTypeIPv4); layer != nil {
-            ipLayer = layer.(*layers.IPv4)
-    } else  {
-            return false
-    }
+	/* Get the IPv4 layer, and if it doesn't exist, keep doing shit
+	   I can't be arsed for proper response outside the bounds of this project */
+	if layer := (*packet).Packet.Layer(layers.LayerTypeIPv4); layer != nil {
+		ipLayer = layer.(*layers.IPv4)
+	} else {
+		return false
+	}
 
-    return (uint8((*ipLayer).IHL) & (1 << 3)) == uint8(EXP)
+	return (uint8((*ipLayer).IHL) & (1 << 3)) == uint8(EXP)
 }
 
 func isExp(packet *netfilter.NFPacket) bool {
 	var ipLayer *layers.IPv4
 
-        /* Get the IPv4 layer, and if it doesn't exist, keep doing shit
-        I can't be arsed for proper response outside the bounds of this project */
-        if layer := (*packet).Packet.Layer(layers.LayerTypeIPv4); layer != nil {
-                ipLayer = layer.(*layers.IPv4)
-        } else  {
-                return false
-        }
+	/* Get the IPv4 layer, and if it doesn't exist, keep doing shit
+	   I can't be arsed for proper response outside the bounds of this project */
+	if layer := (*packet).Packet.Layer(layers.LayerTypeIPv4); layer != nil {
+		ipLayer = layer.(*layers.IPv4)
+	} else {
+		return false
+	}
 
 	return (uint8((*ipLayer).IHL) & 0x01) == uint8(IS_SIFF)
 }
 
 func hasCapabilityUpdate(packet *netfilter.NFPacket) bool {
-        var ipLayer *layers.IPv4
+	var ipLayer *layers.IPv4
 
-        /* Get the IPv4 layer, and if it doesn't exist, keep doing shit
-        I can't be arsed for proper response outside the bounds of this project */
-        if layer := (*packet).Packet.Layer(layers.LayerTypeIPv4); layer != nil {
-                ipLayer = layer.(*layers.IPv4)
-        } else  {
-                return false
-        }
+	/* Get the IPv4 layer, and if it doesn't exist, keep doing shit
+	   I can't be arsed for proper response outside the bounds of this project */
+	if layer := (*packet).Packet.Layer(layers.LayerTypeIPv4); layer != nil {
+		ipLayer = layer.(*layers.IPv4)
+	} else {
+		return false
+	}
 
-        return (uint8((*ipLayer).IHL) & 0x03) == uint8(IS_SIFF | CAPABILITY_UPDATE)
+	return (uint8((*ipLayer).IHL) & 0x03) == uint8(IS_SIFF|CAPABILITY_UPDATE)
 }
 
 func getOptions(packet *netfilter.NFPacket) []layers.IPv4Option {
-        var ipLayer *layers.IPv4
+	var ipLayer *layers.IPv4
 
-        /* Get the IPv4 layer, and if it doesn't exist, keep doing shit
-        I can't be arsed for proper response outside the bounds of this project */
-        if layer := (*packet).Packet.Layer(layers.LayerTypeIPv4); layer != nil {
-                ipLayer = layer.(*layers.IPv4)
-        }
+	/* Get the IPv4 layer, and if it doesn't exist, keep doing shit
+	   I can't be arsed for proper response outside the bounds of this project */
+	if layer := (*packet).Packet.Layer(layers.LayerTypeIPv4); layer != nil {
+		ipLayer = layer.(*layers.IPv4)
+	}
 
-        return (*ipLayer).Options
+	return (*ipLayer).Options
 }
 
 func calcCapability(packet *netfilter.NFPacket) byte {
-    var ipLayer *layers.IPv4
-    /*Get the IPv4 layer, or ignore it if it doesn't exist. */
-    if layer := packet.Packet.Layer(layers.LayerTypeIPv4); layer != nil {
-        ipLayer = layer.(*layers.IPv4)
-        value := ipLayer.SrcIP.String() + ipLayer.DstIP.String()
-        key := "This is a secure key right?"
-        hash := sha1.New()
-        checksum := hash.Sum([]byte(value + key))
-        return checksum[len(checksum)-1]
-    }
-    var s byte
-    return s
+	var ipLayer *layers.IPv4
+	/*Get the IPv4 layer, or ignore it if it doesn't exist. */
+	if layer := packet.Packet.Layer(layers.LayerTypeIPv4); layer != nil {
+		ipLayer = layer.(*layers.IPv4)
+		value := ipLayer.SrcIP.String() + ipLayer.DstIP.String()
+		key := "This is a secure key right?"
+		hash := sha1.New()
+		checksum := hash.Sum([]byte(value + key))
+		return checksum[len(checksum)-1]
+	}
+	var s byte
+	return s
 }
 
 func setCapabilities(packet *netfilter.NFPacket, capabilities []byte) {
-	 var ipLayer *layers.IPv4
+	var ipLayer *layers.IPv4
 
-        /* Get the IPv4 layer, and if it doesn't exist, keep doing shit
-        I can't be arsed for proper response outside the bounds of this project */
-        if layer := (*packet).Packet.Layer(layers.LayerTypeIPv4); layer != nil {
-                ipLayer = layer.(*layers.IPv4)
-        }
+	/* Get the IPv4 layer, and if it doesn't exist, keep doing shit
+	   I can't be arsed for proper response outside the bounds of this project */
+	if layer := (*packet).Packet.Layer(layers.LayerTypeIPv4); layer != nil {
+		ipLayer = layer.(*layers.IPv4)
+	}
 
 	var option layers.IPv4Option
 	var array []byte
 	var i uint8 = 0
 
-	for _, b := range capabilities{
+	for _, b := range capabilities {
 		array[i] = b
 		i = i + 1
 	}
@@ -203,15 +203,14 @@ func setCapabilities(packet *netfilter.NFPacket, capabilities []byte) {
 	}
 }
 
-
 func setUpdates(packet *netfilter.NFPacket, updates []byte) {
-	 var ipLayer *layers.IPv4
+	var ipLayer *layers.IPv4
 
-        /* Get the IPv4 layer, and if it doesn't exist, keep doing shit
-        I can't be arsed for proper response outside the bounds of this project */
-        if layer := (*packet).Packet.Layer(layers.LayerTypeIPv4); layer != nil {
-                ipLayer = layer.(*layers.IPv4)
-        }
+	/* Get the IPv4 layer, and if it doesn't exist, keep doing shit
+	   I can't be arsed for proper response outside the bounds of this project */
+	if layer := (*packet).Packet.Layer(layers.LayerTypeIPv4); layer != nil {
+		ipLayer = layer.(*layers.IPv4)
+	}
 
 	var option layers.IPv4Option
 	var array []byte
@@ -242,17 +241,16 @@ func setUpdates(packet *netfilter.NFPacket, updates []byte) {
 	}
 }
 
-
 func getCapabilities(packet *netfilter.NFPacket) []byte {
-        var ipLayer *layers.IPv4
+	var ipLayer *layers.IPv4
 
-        /* Get the IPv4 layer, and if it doesn't exist, keep doing shit
-        I can't be arsed for proper response outside the bounds of this project */
-        if layer := (*packet).Packet.Layer(layers.LayerTypeIPv4); layer != nil {
-                ipLayer = layer.(*layers.IPv4)
-        }
+	/* Get the IPv4 layer, and if it doesn't exist, keep doing shit
+	   I can't be arsed for proper response outside the bounds of this project */
+	if layer := (*packet).Packet.Layer(layers.LayerTypeIPv4); layer != nil {
+		ipLayer = layer.(*layers.IPv4)
+	}
 
-        if (*ipLayer).Options != nil {
+	if (*ipLayer).Options != nil {
 		return (*ipLayer).Options[0].OptionData
 	} else {
 		return nil
@@ -260,15 +258,15 @@ func getCapabilities(packet *netfilter.NFPacket) []byte {
 }
 
 func getUpdates(packet *netfilter.NFPacket) []byte {
-        var ipLayer *layers.IPv4
+	var ipLayer *layers.IPv4
 
-        /* Get the IPv4 layer, and if it doesn't exist, keep doing shit
-        I can't be arsed for proper response outside the bounds of this project */
-        if layer := (*packet).Packet.Layer(layers.LayerTypeIPv4); layer != nil {
-                ipLayer = layer.(*layers.IPv4)
-        }
+	/* Get the IPv4 layer, and if it doesn't exist, keep doing shit
+	   I can't be arsed for proper response outside the bounds of this project */
+	if layer := (*packet).Packet.Layer(layers.LayerTypeIPv4); layer != nil {
+		ipLayer = layer.(*layers.IPv4)
+	}
 
-        if (*ipLayer).Options != nil {
+	if (*ipLayer).Options != nil {
 		return (*ipLayer).Options[1].OptionData
 	} else {
 		return nil
@@ -277,29 +275,29 @@ func getUpdates(packet *netfilter.NFPacket) []byte {
 
 func shiftCapability(packet *netfilter.NFPacket) {
 	var ipLayer *layers.IPv4
-    if layer := (*packet).Packet.Layer(layers.LayerTypeIPv4); layer != nil {
-            ipLayer = layer.(*layers.IPv4)
-    }
-    
-    length := int((*ipLayer).Options[0].OptionLength)
-    if length == 0 {
-        return
-    }
-    for i := 1; i < length; i++ {
-        (*ipLayer).Options[0].OptionData[i - 1] = (*ipLayer).Options[0].OptionData[i - 1]
-    }
-    (*ipLayer).Options[0].OptionData = (*ipLayer).Options[0].OptionData[:length - 1]
-    (*ipLayer).Options[0].OptionLength--;
+	if layer := (*packet).Packet.Layer(layers.LayerTypeIPv4); layer != nil {
+		ipLayer = layer.(*layers.IPv4)
+	}
+
+	length := int((*ipLayer).Options[0].OptionLength)
+	if length == 0 {
+		return
+	}
+	for i := 1; i < length; i++ {
+		(*ipLayer).Options[0].OptionData[i-1] = (*ipLayer).Options[0].OptionData[i-1]
+	}
+	(*ipLayer).Options[0].OptionData = (*ipLayer).Options[0].OptionData[:length-1]
+	(*ipLayer).Options[0].OptionLength--
 }
 
 func addCapability(packet *netfilter.NFPacket, capability byte) {
 	var ipLayer *layers.IPv4
 
-    /* Get the IPv4 layer, and if it doesn't exist, keep doing shit
-    I can't be arsed for proper response outside the bounds of this project */
-    if layer := (*packet).Packet.Layer(layers.LayerTypeIPv4); layer != nil {
-            ipLayer = layer.(*layers.IPv4)
-    }
+	/* Get the IPv4 layer, and if it doesn't exist, keep doing shit
+	   I can't be arsed for proper response outside the bounds of this project */
+	if layer := (*packet).Packet.Layer(layers.LayerTypeIPv4); layer != nil {
+		ipLayer = layer.(*layers.IPv4)
+	}
 
 	if (*ipLayer).Options != nil {
 		if (*ipLayer).Options[0].OptionLength == 4 {
@@ -314,15 +312,14 @@ func addCapability(packet *netfilter.NFPacket, capability byte) {
 	}
 }
 
-
 func addUpdate(packet *netfilter.NFPacket, capability byte) {
 	var ipLayer *layers.IPv4
 
-        /* Get the IPv4 layer, and if it doesn't exist, keep doing shit
-        I can't be arsed for proper response outside the bounds of this project */
-        if layer := (*packet).Packet.Layer(layers.LayerTypeIPv4); layer != nil {
-                ipLayer = layer.(*layers.IPv4)
-        }
+	/* Get the IPv4 layer, and if it doesn't exist, keep doing shit
+	   I can't be arsed for proper response outside the bounds of this project */
+	if layer := (*packet).Packet.Layer(layers.LayerTypeIPv4); layer != nil {
+		ipLayer = layer.(*layers.IPv4)
+	}
 
 	if (*ipLayer).Options != nil {
 		if (*ipLayer).Options[1].OptionLength == 4 {
