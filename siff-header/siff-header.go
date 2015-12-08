@@ -33,8 +33,9 @@ exists. Pass in the NFPacket, the flags (bitwise OR them if you need both), and
 the capabilities and capability updates arrays. If only IS_SIFF is set, just fill
 the last 4 bytes with dummy data, it'll be ignored. If you want to update specific
 fields, then use the [update function name here] function */
-func setSiffFields(packet *netfilter.NFPacket, flags layers.IPv4Flag, capabilities layers.IPv4Option, updoots layers.IPv4Option) {
+func setSiffFields(packet *netfilter.NFPacket, flags layers.IPv4Flag, capabilities []byte, updoots []byte) {
 	var ipLayer *layers.IPv4
+	var optionArray [2]layers.IPv4Option
 
 	/* Get the IPv4 layer, and if it doesn't exist, keep doing shit
 	I can't be arsed for proper response outside the bounds of this project */
@@ -65,17 +66,25 @@ func setSiffFields(packet *netfilter.NFPacket, flags layers.IPv4Flag, capabiliti
 	(*ipLayer).Flags = flags
 
 	// handle the options
+	var capOption layers.IPv4Option
+	capOption.OptionLength = uint8(len(capabilities))
+	capOption.OptionData = capabilities
+
+	var updateOption layers.IPv4Option
+	updateOption.OptionLength = uint8(len(updoots))
+	updateOption.OptionData = updoots
+
+	optionArray[0] = capOption
+	optionArray[1] = updateOption
+
 	// add options
-        if (uint8(flags) & 0x3) == uint8(IS_SIFF | CAPABILITY_UPDATE) {
-		var optionArray []layers.IPv4Option
-		optionArray[0] = capabilities
-		optionArray[1] = updoots
-                (*ipLayer).Options = optionArray
-        } else if (uint8(flags) & 0x3) == uint8(IS_SIFF) {
-                var new_capabilities []layers.IPv4Option
-		new_capabilities[0] = capabilities
-		(*ipLayer).Options = new_capabilities
-        }
+    if (uint8(flags) & 0x3) == uint8(IS_SIFF | CAPABILITY_UPDATE) {
+    	var optionSlice []layers.IPv4Option = optionArray[:]
+        (*ipLayer).Options = optionSlice
+    } else if (uint8(flags) & 0x2) == uint8(IS_SIFF) {
+		var optionSlice []layers.IPv4Option = optionArray[:1]
+		(*ipLayer).Options = optionSlice
+    }
 
 	// we're done
 }
@@ -105,7 +114,7 @@ func isSiff(packet *netfilter.NFPacket) bool {
                 return false
         }
 
-	return (uint8((*ipLayer).IHL) & 0x01) == uint8(IS_SIFF)
+	return (uint8((*ipLayer).IHL) & 0x02) == uint8(IS_SIFF)
 }
 
 func hasCapabilityUpdate(packet *netfilter.NFPacket) bool {
@@ -144,32 +153,12 @@ func setCapabilities(packet *netfilter.NFPacket, capabilities []byte) {
         }
 
 	var option layers.IPv4Option
-	var array []byte
-	var i uint8 = 0
 
-	for _, b := range capabilities{
-		array[i] = b
-		i = i + 1
-	}
-
-	option.OptionLength = i
-	option.OptionData = array
+	option.OptionLength = uint8(len(capabilities))
+	option.OptionData = capabilities[:]
 
 	// add into Options
-	if (*ipLayer).Options != nil {
-		if len((*ipLayer).Options) > 0 {
-			(*ipLayer).Options[0] = option
-		}
-	} else {
-		var optionArray []layers.IPv4Option
-		optionArray[0] = option
-		var update layers.IPv4Option
-		var emptyArray []byte
-		update.OptionLength = 0
-		update.OptionData = emptyArray
-		optionArray[1] = update
-		(*ipLayer).Options = optionArray
-	}
+	(*ipLayer).Options[0] = option
 }
 
 
@@ -183,32 +172,12 @@ func setUpdates(packet *netfilter.NFPacket, updates []byte) {
         }
 
 	var option layers.IPv4Option
-	var array []byte
-	var i uint8 = 0
 
-	for _, b := range updates {
-		array[i] = b
-		i = i + 1
-	}
-
-	option.OptionLength = i
-	option.OptionData = array
+	option.OptionLength = uint8(len(updates))
+	option.OptionData = updates[:]
 
 	// add into Options
-	if (*ipLayer).Options != nil {
-		if len((*ipLayer).Options) > 0 {
-			(*ipLayer).Options[1] = option
-		}
-	} else {
-		var optionArray []layers.IPv4Option
-		var emptyOption layers.IPv4Option
-		var emptyArray []byte
-		emptyOption.OptionLength = 0
-		emptyOption.OptionData = emptyArray
-		optionArray[0] = emptyOption
-		optionArray[1] = option
-		(*ipLayer).Options = optionArray
-	}
+	(*ipLayer).Options[1] = option
 }
 
 
@@ -255,13 +224,25 @@ func addCapability(packet *netfilter.NFPacket, capability byte) {
 
 	if (*ipLayer).Options != nil {
 		if (*ipLayer).Options[0].OptionLength == 4 {
-			(*ipLayer).Options[0].OptionData[0] = (*ipLayer).Options[0].OptionData[1]
-			(*ipLayer).Options[0].OptionData[1] = (*ipLayer).Options[0].OptionData[2]
-			(*ipLayer).Options[0].OptionData[2] = (*ipLayer).Options[0].OptionData[3]
-			(*ipLayer).Options[0].OptionData[3] = capability
+			// shift options forward
+			var capability_array [4]byte
+			capability_array[0] = (*ipLayer).Options[0].OptionData[1]
+			capability_array[1] = (*ipLayer).Options[0].OptionData[2]
+			capability_array[2] = (*ipLayer).Options[0].OptionData[3]
+			capability_array[3] = capability
+
+			(*ipLayer).Options[0].OptionData = capability_array[:]
 		} else {
-			(*ipLayer).Options[0].OptionData[(*ipLayer).Options[0].OptionLength] = capability
+			var capability_array [4]byte
+			// copy slice in optionData to array
+			for i, b := range (*ipLayer).Options[0].OptionData {
+				capability_array[i] = b
+			}
+			// store new capability
+			capability_array[(*ipLayer).Options[0].OptionLength] = capability
+			// set new slice
 			(*ipLayer).Options[0].OptionLength = (*ipLayer).Options[0].OptionLength + 1
+			(*ipLayer).Options[0].OptionData = capability_array[:(*ipLayer).Options[0].OptionLength]
 		}
 	}
 }
@@ -278,13 +259,25 @@ func addUpdate(packet *netfilter.NFPacket, capability byte) {
 
 	if (*ipLayer).Options != nil {
 		if (*ipLayer).Options[1].OptionLength == 4 {
-			(*ipLayer).Options[1].OptionData[0] = (*ipLayer).Options[0].OptionData[1]
-			(*ipLayer).Options[1].OptionData[1] = (*ipLayer).Options[0].OptionData[2]
-			(*ipLayer).Options[1].OptionData[2] = (*ipLayer).Options[0].OptionData[3]
-			(*ipLayer).Options[1].OptionData[3] = capability
+			// shift options forward
+			var capability_array [4]byte
+			capability_array[0] = (*ipLayer).Options[1].OptionData[1]
+			capability_array[1] = (*ipLayer).Options[1].OptionData[2]
+			capability_array[2] = (*ipLayer).Options[1].OptionData[3]
+			capability_array[3] = capability
+
+			(*ipLayer).Options[1].OptionData = capability_array[:]
 		} else {
-			(*ipLayer).Options[1].OptionData[(*ipLayer).Options[1].OptionLength] = capability
+			var capability_array [4]byte
+			// copy slice in optionData to array
+			for i, b := range (*ipLayer).Options[1].OptionData {
+				capability_array[i] = b
+			}
+			// store new capability
+			capability_array[(*ipLayer).Options[1].OptionLength] = capability
+			// set new slice
 			(*ipLayer).Options[1].OptionLength = (*ipLayer).Options[1].OptionLength + 1
+			(*ipLayer).Options[1].OptionData = capability_array[:(*ipLayer).Options[1].OptionLength]
 		}
 	}
 }

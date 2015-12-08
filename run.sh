@@ -152,7 +152,7 @@ docker run --name client --cap-add=NET_ADMIN --rm siff-dr-client /bin/bash -c "
 echo ""
 echo "Attacker, Destroyer of Worlds, Shapeless Horror From Beyond the Outer Veil, and Dark Lord of All Existence"
 echo ""
-docker run --name attacker --cap-add=NET_ADMIN -d -i=false -t attacker /bin/bash -c "
+docker run --name attacker --cap-add=NET_ADMIN --rm attacker /bin/bash -c "
     echo -e '$HOSTS' > /etc/hosts
     ip addr add $ATTACKER dev eth0
     route del -net $NET
