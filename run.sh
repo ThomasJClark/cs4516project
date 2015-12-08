@@ -58,7 +58,7 @@ docker run --name server --cap-add=NET_ADMIN -d siff-dr-server /bin/bash -c "
 echo ""
 echo "Server router"
 echo ""
-docker run --name server-router --cap-add=NET_ADMIN -d -i=false -t siff-dr-server-router /bin/bash -c "
+docker run --name server-router --cap-add=NET_ADMIN -d siff-dr-server-router /bin/bash -c "
     echo -e '$HOSTS' > /etc/hosts
     ip addr add $SERVER_ROUTER dev eth0
     route del -net $NET
@@ -74,7 +74,7 @@ docker run --name server-router --cap-add=NET_ADMIN -d -i=false -t siff-dr-serve
 echo ""
 echo "Legacy router"
 echo ""
-docker run --name legacy-router --cap-add=NET_ADMIN -d -i=false -t legacy-router /bin/bash -c "
+docker run --name legacy-router --cap-add=NET_ADMIN -d legacy-router /bin/bash -c "
     echo -e '$HOSTS' > /etc/hosts
     ip addr add $LEGACY_ROUTER dev eth0
     route del -net $NET
@@ -90,7 +90,7 @@ docker run --name legacy-router --cap-add=NET_ADMIN -d -i=false -t legacy-router
 echo ""
 echo "SIFF router 1"
 echo ""
-docker run --name siff-router1 --cap-add=NET_ADMIN -d -i=false -t siff-dr-router1 /bin/bash -c "
+docker run --name siff-router1 --cap-add=NET_ADMIN -d siff-dr-router1 /bin/bash -c "
     echo -e '$HOSTS' > /etc/hosts
     ip addr add $SIFF_ROUTER1 dev eth0
     route del -net $NET
@@ -107,7 +107,7 @@ docker run --name siff-router1 --cap-add=NET_ADMIN -d -i=false -t siff-dr-router
 echo ""
 echo "SIFF router 2"
 echo ""
-docker run --name siff-router2 --cap-add=NET_ADMIN -d -i=false -t siff-dr-router2 /bin/bash -c "
+docker run --name siff-router2 --cap-add=NET_ADMIN -d siff-dr-router2 /bin/bash -c "
     echo -e '$HOSTS' > /etc/hosts
     ip addr add $SIFF_ROUTER2 dev eth0
     route del -net $NET
@@ -123,7 +123,7 @@ docker run --name siff-router2 --cap-add=NET_ADMIN -d -i=false -t siff-dr-router
 echo ""
 echo "Client router"
 echo ""
-docker run --name client-router --cap-add=NET_ADMIN -d -i=false -t siff-dr-client-router /bin/bash -c "
+docker run --name client-router --cap-add=NET_ADMIN -d siff-dr-client-router /bin/bash -c "
     echo -e '$HOSTS' > /etc/hosts
     ip addr add $CLIENT_ROUTER dev eth0
     route del -net $NET

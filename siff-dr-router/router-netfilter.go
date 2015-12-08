@@ -39,9 +39,11 @@ func processPackets() {
 		if isSiff(&packet) {
 			capability := calcCapability(&packet)
 			if isExp(&packet) {
+				log.Println("Got exp packet")
 				addCapability(&packet, capability)
 			} else {
-				if capability != getCapabilities(&packet)[0] {
+				capabilities := getCapabilities(&packet)
+				if len(capabilities) < 1 || capability != getCapabilities(&packet)[0] {
 					log.Println("Capability mismatch")
 					packet.SetVerdict(netfilter.NF_DROP)
 				}
@@ -65,7 +67,7 @@ func processPackets() {
 				packet.SetResult(netfilter.NF_ACCEPT, serializedPacket)
 			}
 		} else {
-			packet.SetVerdict(netfilter.NF_DROP)
+			packet.SetVerdict(netfilter.NF_ACCEPT)
 		}
 	}
 }

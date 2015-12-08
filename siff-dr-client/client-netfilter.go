@@ -40,6 +40,10 @@ func processPackets() {
 		flags |= IS_SIFF
 		setSiffFields(&packet, flags, empty, empty2)
 
+		if isSiff(&packet) {
+			log.Println("Packet is SIFF")
+		}
+
 		var ipLayer *layers.IPv4
 		/* Get the IPv4 layer, and if it doesn't exist, keep doing shit
 		   I can't be arsed for proper response outside the bounds of this project */

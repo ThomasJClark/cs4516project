@@ -8,6 +8,7 @@ import (
 
 // SIFF constants
 const (
+	EXP  layers.IPv4Flag = 1 << 3
 	EVIL layers.IPv4Flag = 1 << 2 // http://tools.ietf.org/html/rfc3514 ;)
 	// also known as Every Villian Is Lemons
 	IS_SIFF           layers.IPv4Flag = 1 << 1 // Specify a SIFF packet
@@ -115,11 +116,21 @@ func isSiff(packet *netfilter.NFPacket) bool {
 		return false
 	}
 
-	return (uint8((*ipLayer).IHL) & 0x01) == uint8(IS_SIFF)
+	return (uint8((*ipLayer).IHL) & 0x02) == uint8(IS_SIFF)
 }
 
 func isExp(packet *netfilter.NFPacket) bool {
-	return false
+	var ipLayer *layers.IPv4
+
+	/* Get the IPv4 layer, and if it doesn't exist, keep doing shit
+	   I can't be arsed for proper response outside the bounds of this project */
+	if layer := (*packet).Packet.Layer(layers.LayerTypeIPv4); layer != nil {
+		ipLayer = layer.(*layers.IPv4)
+	} else {
+		return false
+	}
+
+	return (uint8((*ipLayer).IHL) & (1 << 3)) == uint8(EXP)
 }
 
 func calcCapability(packet *netfilter.NFPacket) byte {
