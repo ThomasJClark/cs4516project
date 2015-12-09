@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 )
 
@@ -12,6 +13,7 @@ content.
 func main() {
 	http.HandleFunc("/", func(res http.ResponseWriter, req *http.Request) {
 		fmt.Fprint(res, "Sample server data")
+		log.Println("Got req")
 	})
 
 	http.ListenAndServe(":8080", nil)
