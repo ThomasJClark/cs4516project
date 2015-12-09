@@ -9,6 +9,7 @@ import (
 	"github.com/google/gopacket/layers"
 )
 
+// This is Tom's black magic ask him
 func Serialize(ipLayer *layers.IPv4) ([]byte, error) {
 	/*Write the IPv4 header into a gopacket buffer*/
 	buf := gopacket.NewSerializeBuffer()
@@ -36,18 +37,24 @@ func processPackets() {
 	for packet := range nfq.GetPackets() {
 		log.Println("Got packet")
 
+		// If packet is SIFF
 		if isSiff(&packet) {
+			// Get capability
 			capability := calcCapability(&packet)
+			// If packet is exploration, add capability
 			if isExp(&packet) {
 				log.Println("Got exp packet")
 				addCapability(&packet, capability)
 			} else {
+				// Otherwise check that the lowest capability matches ours
 				capabilities := getCapabilities(&packet)
+				// If there isn't one or it doesn't match, drop the packet
 				if len(capabilities) < 1 || capability != getCapabilities(&packet)[0] {
 					log.Println("Capability mismatch")
 					packet.SetVerdict(netfilter.NF_DROP)
 				}
 			}
+			// Shift our capability off
 			shiftCapability(&packet)
 
 			var ipLayer *layers.IPv4
@@ -59,6 +66,7 @@ func processPackets() {
 				// maybe do something?
 			}
 
+			// Serialize packet to pass back to netfilter
 			serializedPacket, err := Serialize(ipLayer)
 			if err != nil {
 				log.Println("Failed to serialize packet, dropping")

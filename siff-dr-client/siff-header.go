@@ -138,9 +138,11 @@ func calcCapability(packet *netfilter.NFPacket) byte {
 	/*Get the IPv4 layer, or ignore it if it doesn't exist. */
 	if layer := packet.Packet.Layer(layers.LayerTypeIPv4); layer != nil {
 		ipLayer = layer.(*layers.IPv4)
+		// Append src and dest ip
 		value := ipLayer.SrcIP.String() + ipLayer.DstIP.String()
 		key := "This is a secure key right?"
 		hash := sha1.New()
+		// Get checksum of IPs with key
 		checksum := hash.Sum([]byte(value + key))
 		return checksum[len(checksum)-1]
 	}
@@ -155,12 +157,15 @@ func shiftCapability(packet *netfilter.NFPacket) {
 	}
 
 	length := int((*ipLayer).Options[0].OptionLength)
+	// If no options
 	if length == 0 {
 		return
 	}
+	// Shift all towards 0
 	for i := 1; i < length; i++ {
 		(*ipLayer).Options[0].OptionData[i-1] = (*ipLayer).Options[0].OptionData[i-1]
 	}
+	// Shift 1 to 0
 	(*ipLayer).Options[0].OptionData = (*ipLayer).Options[0].OptionData[:length-1]
 	(*ipLayer).Options[0].OptionLength--
 }

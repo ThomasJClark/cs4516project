@@ -34,6 +34,7 @@ func processPackets() {
 
 	for packet := range nfq.GetPackets() {
 		log.Println("Adding SIFF headers")
+		// Empty arrays since don't know capability yet
 		var empty []byte
 		var empty2 []byte
 		var flags layers.IPv4Flag
@@ -44,6 +45,7 @@ func processPackets() {
 			log.Println("Packet is SIFF")
 		}
 
+		// Get serialization of modified packet
 		var ipLayer *layers.IPv4
 		/* Get the IPv4 layer, and if it doesn't exist, keep doing shit
 		   I can't be arsed for proper response outside the bounds of this project */
