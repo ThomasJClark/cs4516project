@@ -1,7 +1,8 @@
-package main
+package siffdr
 
 import (
 	"crypto/sha1"
+
 	"github.com/ThomasJClark/cs4516project/pkg/go-netfilter-queue"
 	"github.com/google/gopacket/layers"
 )
@@ -14,21 +15,6 @@ const (
 	IS_SIFF           layers.IPv4Flag = 1 << 1 // Specify a SIFF packet
 	CAPABILITY_UPDATE layers.IPv4Flag = 1 << 0 // includes capability update
 )
-
-/* https://www.youtube.com/watch?v=SLqGwX5Jl60 */
-func everyVillainIsLemons(packet *netfilter.NFPacket) {
-	var ipLayer *layers.IPv4
-
-	/* Get the IPv4 layer, and if it doesn't exist, keep doing shit
-	   I can't be arsed for proper response outside the bounds of this project */
-	if layer := (*packet).Packet.Layer(layers.LayerTypeIPv4); layer != nil {
-		ipLayer = layer.(*layers.IPv4)
-	} else {
-		// maybe do something?
-	}
-
-	(*ipLayer).Flags = (*ipLayer).Flags | EVIL
-}
 
 /* Adds the SIFF header to a packet, or modifies it in the case that it already
 exists. Pass in the NFPacket, the flags (bitwise OR them if you need both), and
@@ -89,20 +75,6 @@ func setSiffFields(packet *netfilter.NFPacket, flags layers.IPv4Flag, capabiliti
 	}
 
 	// we're done
-}
-
-func isEvil(packet *netfilter.NFPacket) bool {
-	var ipLayer *layers.IPv4
-
-	/* Get the IPv4 layer, and if it doesn't exist, keep doing shit
-	   I can't be arsed for proper response outside the bounds of this project */
-	if layer := (*packet).Packet.Layer(layers.LayerTypeIPv4); layer != nil {
-		ipLayer = layer.(*layers.IPv4)
-	} else {
-		// maybe do something?
-	}
-
-	return (uint8((*ipLayer).IHL) & (1 << 2)) == uint8(EVIL)
 }
 
 func isSiff(packet *netfilter.NFPacket) bool {
