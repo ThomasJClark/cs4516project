@@ -66,3 +66,21 @@ func ProcessForwardPackets() {
 		packet.SetVerdict(netfilter.NF_ACCEPT)
 	}
 }
+
+/* Processes input packets to accept or reject SIFF handshakes, and handle capability updates
+ */
+func ProcessInputPackets() {
+	nfq, err := netfilter.NewNFQueue(1, 100000, 0xffff)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	log.Println("Waiting for input packets")
+	for packet := range nfq.GetPackets() {
+
+		log.Println("INPUT - got a packet")
+		packet.SetVerdict(netfilter.NF_ACCEPT)
+
+	}
+
+}

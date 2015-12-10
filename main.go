@@ -30,6 +30,7 @@ func main() {
 
 	case "server":
 		go siffdr.ProcessOutputPackets()
+		go siffdr.ProcessInputPackets()
 		serveData()
 
 	case "siff-router":
