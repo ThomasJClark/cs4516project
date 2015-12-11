@@ -90,7 +90,7 @@ func isSiff(packet *netfilter.NFPacket) bool {
 		return false
 	}
 
-	return ((uint8((*ipLayer).Flags)) & 0x02) == uint8(IS_SIFF)
+	return ((uint8((*ipLayer).IHL)) & 0x02) == uint8(IS_SIFF)
 }
 
 func isExp(packet *netfilter.NFPacket) bool {
