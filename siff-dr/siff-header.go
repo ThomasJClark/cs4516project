@@ -2,6 +2,7 @@ package siffdr
 
 import (
 	"crypto/sha1"
+	"log"
 
 	"github.com/ThomasJClark/cs4516project/pkg/go-netfilter-queue"
 	"github.com/google/gopacket/layers"
@@ -85,10 +86,11 @@ func isSiff(packet *netfilter.NFPacket) bool {
 	if layer := (*packet).Packet.Layer(layers.LayerTypeIPv4); layer != nil {
 		ipLayer = layer.(*layers.IPv4)
 	} else {
+		log.Println("Failed to get ip layer")
 		return false
 	}
 
-	return (uint8((*ipLayer).IHL) & 0x02) == uint8(IS_SIFF)
+	return ((uint8((*ipLayer).Flags)) & 0x02) == uint8(IS_SIFF)
 }
 
 func isExp(packet *netfilter.NFPacket) bool {
