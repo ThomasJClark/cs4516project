@@ -306,3 +306,21 @@ func addUpdate(packet *netfilter.NFPacket, capability byte) {
 		}
 	}
 }
+
+/*
+Reverse the capability to read it to be sent back
+*/
+func reverseCapability(capability []byte) {
+	//find end of array
+	length := len(capability)
+	for length = len(capability) - 1; capability[length] == 0 && length > 0; length-- {
+		//do nothing
+	}
+
+	for i := 0; i <= int(length/2); i++ {
+		temp := capability[length-i]
+		capability[length-i] = capability[i]
+		capability[i] = temp
+	}
+
+}

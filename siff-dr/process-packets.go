@@ -102,6 +102,12 @@ func ProcessInputPackets() {
 	for packet := range nfq.GetPackets() {
 
 		log.Println("INPUT - got a packet")
+		if isSiff(&packet) && isExp(&packet) {
+			log.Println("INPUT - Recvd pkt is EXP SIFF")
+			capabilities := getCapabilities(&packet)
+			//Reverse capabilities
+			reverseCapability(capabilities)
+		}
 		packet.SetVerdict(netfilter.NF_ACCEPT)
 
 	}
