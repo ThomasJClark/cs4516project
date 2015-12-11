@@ -130,6 +130,10 @@ func shiftCapability(packet *netfilter.NFPacket) {
 		ipLayer = layer.(*layers.IPv4)
 	}
 
+	if len((*ipLayer).Options) == 0 {
+		return
+	}
+
 	length := int((*ipLayer).Options[0].OptionLength)
 	// If no options
 	if length == 0 {
