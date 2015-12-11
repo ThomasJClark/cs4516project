@@ -58,27 +58,27 @@ func ProcessForwardPackets() {
 
 		if isSiff(&packet) {
 			log.Println("Got SIFF packet for", hostname(ip.DstIP))
-            capability := calcCapability(&packet)
-            if isExp(&packet) {
-                addCapability(&packet, capability)
-            } else {
-                capabilities := getCapabilities(&packet)
-                shiftCapability(&packet)
-                if len(capabilities) < 1 || capabilities[0] != capability {
-                    log.Println("Capability mismatch, dropping")
-                    packet.SetVerdict(netfilter.NF_DROP)
-                    continue
-                }
-            }
-            serializedPacket, err := serialize(packet.Packet.NetworkLayer().(*layers.IPv4))
-            if err != nil {
-                log.Println(err)
-                log.Println("Failed to serialize packet, dropping")
-                packet.SetVerdict(netfilter.NF_DROP)
-            } else {
-                packet.SetResult(netfilter.NF_ACCEPT, serializedPacket)
-            }
-            continue
+			capability := calcCapability(&packet)
+			if isExp(&packet) {
+				addCapability(&packet, capability)
+			} else {
+				capabilities := getCapabilities(&packet)
+				shiftCapability(&packet)
+				if len(capabilities) < 1 || capabilities[0] != capability {
+					log.Println("Capability mismatch, dropping")
+					packet.SetVerdict(netfilter.NF_DROP)
+					continue
+				}
+			}
+			serializedPacket, err := serialize(packet.Packet.NetworkLayer().(*layers.IPv4))
+			if err != nil {
+				log.Println(err)
+				log.Println("Failed to serialize packet, dropping")
+				packet.SetVerdict(netfilter.NF_DROP)
+			} else {
+				packet.SetResult(netfilter.NF_ACCEPT, serializedPacket)
+			}
+			continue
 		} else {
 			log.Println("Got packet for", hostname(ip.DstIP))
 		}
