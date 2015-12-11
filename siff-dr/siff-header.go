@@ -39,9 +39,9 @@ func setSiffFields(packet *netfilter.NFPacket, flags layers.IPv4Flag, capabiliti
 	var IHLchange uint8 = (*ipLayer).IHL
 
 	if (flags & 0x03) == IS_SIFF {
-		(*ipLayer).IHL = 6
-	} else if (flags & 0x03) == (IS_SIFF | CAPABILITY_UPDATE) {
 		(*ipLayer).IHL = 7
+	} else if (flags & 0x03) == (IS_SIFF | CAPABILITY_UPDATE) {
+		(*ipLayer).IHL = 8
 	}
 
 	/* change the total length by the change in IHL * 4 to convert from
@@ -56,10 +56,14 @@ func setSiffFields(packet *netfilter.NFPacket, flags layers.IPv4Flag, capabiliti
 
 	// handle the options
 	var capOption layers.IPv4Option
-	capOption.OptionLength = uint8(len(capabilities))
+	capOption.OptionType = 86
+	capOption.OptionLength = uint8(len(capabilities)) + 2
+	capabilities = append(capabilities, 0)
+	capabilities = append(capabilities, 0)
 	capOption.OptionData = capabilities
 
 	var updateOption layers.IPv4Option
+	updateOption.OptionType = 86
 	updateOption.OptionLength = uint8(len(updoots))
 	updateOption.OptionData = updoots
 
@@ -134,18 +138,11 @@ func shiftCapability(packet *netfilter.NFPacket) {
 		return
 	}
 
-	length := int((*ipLayer).Options[0].OptionLength)
-	// If no options
-	if length == 0 {
-		return
-	}
+	// Cut out empty options (more seem to get added for some reason at each hop)
+	(*ipLayer).Options = (*ipLayer).Options[:(*ipLayer).IHL-6]
 	// Shift all towards 0
-	for i := 1; i < length; i++ {
-		(*ipLayer).Options[0].OptionData[i-1] = (*ipLayer).Options[0].OptionData[i-1]
-	}
-	// Shift 1 to 0
-	(*ipLayer).Options[0].OptionData = (*ipLayer).Options[0].OptionData[:length-1]
-	(*ipLayer).Options[0].OptionLength--
+	(*ipLayer).Options[0].OptionData = (*ipLayer).Options[0].OptionData[1:]
+	(*ipLayer).Options[0].OptionData = append((*ipLayer).Options[0].OptionData, 9)
 }
 
 func hasCapabilityUpdate(packet *netfilter.NFPacket) bool {

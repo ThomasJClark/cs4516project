@@ -1,6 +1,7 @@
 package siffdr
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/ThomasJClark/cs4516project/pkg/go-netfilter-queue"
@@ -21,26 +22,26 @@ func ProcessOutputPackets() {
 		log.Println("Adding SIFF headers")
 
 		// Empty arrays since don't know capability yet
-		var empty []byte
+		caps := []byte{9, 9, 9, 9}
 		var empty2 []byte
 		var flags layers.IPv4Flag
 		flags |= IS_SIFF
-		setSiffFields(&packet, flags, empty, empty2)
+		setSiffFields(&packet, flags, caps, empty2)
 
 		if isSiff(&packet) {
 			log.Println("Packet is SIFF")
 		}
 
-		packet.SetVerdict(netfilter.NF_ACCEPT)
+		//packet.SetVerdict(netfilter.NF_ACCEPT)
 		// Get serialization of modified packet
-		// serializedPacket, err := serialize(packet.Packet.NetworkLayer().(*layers.IPv4))
-		// if err != nil {
-		// 	log.Println(err)
-		// 	log.Println("Failed to serialize packet, dropping")
-		// 	packet.SetVerdict(netfilter.NF_DROP)
-		// } else {
-		// 	packet.SetResult(netfilter.NF_ACCEPT, serializedPacket)
-		// }
+		serializedPacket, err := serialize(packet.Packet.NetworkLayer().(*layers.IPv4))
+		if err != nil {
+			log.Println(err)
+			log.Println("Failed to serialize packet, dropping")
+			packet.SetVerdict(netfilter.NF_DROP)
+		} else {
+			packet.SetResult(netfilter.NF_ACCEPT, serializedPacket)
+		}
 	}
 }
 
@@ -65,9 +66,11 @@ func ProcessForwardPackets() {
 				capabilities := getCapabilities(&packet)
 				shiftCapability(&packet)
 				if len(capabilities) < 1 || capabilities[0] != capability {
-					log.Println("Capability mismatch, dropping")
+					log.Println("Capability mismatch: ", fmt.Sprintf("%c %c, dropping", capability, capabilities))
 					packet.SetVerdict(netfilter.NF_DROP)
 					continue
+				} else {
+					log.Println("Capability match, forwarding packet")
 				}
 			}
 			serializedPacket, err := serialize(packet.Packet.NetworkLayer().(*layers.IPv4))
