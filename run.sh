@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 #setup virtual machine for a mac environment
 if [[ "$OSTYPE" == "darwin"* ]]; then
@@ -42,6 +42,7 @@ echo "Running containers (check *.log files)"
 # to specify static IP addressess.
 docker run --name server -h server --cap-add=NET_ADMIN -t siff /bin/bash -c "
     echo -e '$HOSTS' > /etc/hosts
+    ip addr flush dev eth0
     ip addr add $SERVER dev eth0
     route add -host server-router/32 eth0
     route add default gw server-router
@@ -51,67 +52,64 @@ docker run --name server -h server --cap-add=NET_ADMIN -t siff /bin/bash -c "
 
 docker run --name server-router -h server-router --cap-add=NET_ADMIN -t siff /bin/bash -c "
     echo -e '$HOSTS' > /etc/hosts
+    ip addr flush dev eth0
     ip addr add $SERVER_ROUTER dev eth0
     route add -host server/32 eth0
     route add -host siff-router1/32 eth0
     route add -host legacy-router/32 eth0
     route add -host client/32 gw siff-router1
-    route add -host siff-router2/32 gw siff-router2
-    route add -host client-router/32 gw legacy-router
     iptables -A FORWARD -j NFQUEUE --queue-num 0
     /go/bin/cs4516project -mode siff-router" >> server-router.log 2>&1 &
 
 docker run --name legacy-router -h legacy-router --cap-add=NET_ADMIN -t siff /bin/bash -c "
     echo -e '$HOSTS' > /etc/hosts
+    ip addr flush dev eth0
     ip addr add $LEGACY_ROUTER dev eth0
     route add -host server-router/32 eth0
     route add -host client-router/32 eth0
     route add -host server gw server-router
     route add -host client/32 gw client-router
-    route add -host siff-router1/32 gw server-router
-    route add -host siff-router2/32 gw client-router
     iptables -A FORWARD -j NFQUEUE --queue-num 0
     /go/bin/cs4516project -mode legacy-router -drop 50" >> legacy-router.log 2>&1 &
 
 docker run --name siff-router1 -h siff-router1 --cap-add=NET_ADMIN -t siff /bin/bash -c "
     echo -e '$HOSTS' > /etc/hosts
+    ip addr flush dev eth0
     ip addr add $SIFF_ROUTER1 dev eth0
     route del default
     route add -host server-router/32 eth0
     route add -host siff-router2/32 eth0
     route add -host server gw server-router
     route add -host client gw siff-router2
-    route add -host client-router gw siff-router2
-    route add -host legacy-router gw server-router
     iptables -A FORWARD -j NFQUEUE --queue-num 0
     /go/bin/cs4516project -mode siff-router" >> siff-router1.log 2>&1 &
 
 docker run --name siff-router2 -h siff-router2 --cap-add=NET_ADMIN -t siff /bin/bash -c "
     echo -e '$HOSTS' > /etc/hosts
+    ip addr flush dev eth0
     ip addr add $SIFF_ROUTER2 dev eth0
     route add -host client-router/32 eth0
     route add -host siff-router1/32 eth0
     route add -host legacy-router gw client-router
     route add -host client gw client-router
     route add -host server gw siff-router1
-    route add -host server-router gw siff-router1
     iptables -A FORWARD -j NFQUEUE --queue-num 0
     /go/bin/cs4516project -mode siff-router" >> siff-router2.log 2>&1 &
 
 docker run --name client-router -h client-router --cap-add=NET_ADMIN -t siff /bin/bash -c "
     echo -e '$HOSTS' > /etc/hosts
+    ip addr flush dev eth0
     ip addr add $CLIENT_ROUTER dev eth0
     route add -host client/32 eth0
     route add -host siff-router2/32 eth0
     route add -host legacy-router/32 eth0
-    route add -host siff-router1 gw siff-router2
-    route add -host server-router gw siff-router2
-    route add -host server gw legacy-router
+    route add -host server gw siff-router2 #legacy-router
     iptables -A FORWARD -j NFQUEUE --queue-num 0
     /go/bin/cs4516project -mode siff-router" >> client-router.log 2>&1 &
 
 docker run --name client -h client --cap-add=NET_ADMIN -t siff /bin/bash -c "
     echo -e '$HOSTS' > /etc/hosts
+    ip addr flush dev eth0
     ip addr add $CLIENT dev eth0
     route add -host client-router/32 eth0
     route add -host server/32 gw client-router
@@ -121,6 +119,7 @@ docker run --name client -h client --cap-add=NET_ADMIN -t siff /bin/bash -c "
 
 docker run --name attacker -h attacker --cap-add=NET_ADMIN -t siff /bin/bash -c "
     echo -e '$HOSTS' > /etc/hosts
+    ip addr flush dev eth0
     ip addr add $ATTACKER dev eth0
     route add -host legacy-router/32 eth0
     route add -host server/32 gw legacy-router
