@@ -24,7 +24,7 @@ the last 4 bytes with dummy data, it'll be ignored. If you want to update specif
 fields, then use the [update function name here] function */
 func setSiffFields(packet *netfilter.NFPacket, flags layers.IPv4Flag, capabilities []byte, updoots []byte) {
 	var ipLayer *layers.IPv4
-	var optionArray [2]layers.IPv4Option
+	var optionArray [3]layers.IPv4Option
 
 	/* Get the IPv4 layer, and if it doesn't exist, keep doing shit
 	   I can't be arsed for proper response outside the bounds of this project */
@@ -39,9 +39,11 @@ func setSiffFields(packet *netfilter.NFPacket, flags layers.IPv4Flag, capabiliti
 
 	// compute new IHL and length
 	if (flags & 0x03) == IS_SIFF {
-		(*ipLayer).IHL = 7
-	} else if (flags & 0x03) == (IS_SIFF | CAPABILITY_UPDATE) {
 		(*ipLayer).IHL = 9
+	} else if (flags & 0x03) == (IS_SIFF | CAPABILITY_UPDATE) {
+		(*ipLayer).IHL = 11
+	} else {	// evil
+		(*ipLayer).IHL = 7
 	}
 
 	IHLchange = uint16((*ipLayer).IHL) - IHLchange
@@ -53,8 +55,24 @@ func setSiffFields(packet *netfilter.NFPacket, flags layers.IPv4Flag, capabiliti
 	   32-bit words to bytes */
 	(*ipLayer).Length = uint16((*ipLayer).IHL) * 4
 
-	// set the flags, preserving the first flag bit in case it is used
-	(*ipLayer).Flags = flags
+	// set the flags option
+	var flagOption layers.IPv4Option
+	flagOption.OptionType = 86
+	flagOption.OptionLength = 8
+	var flag_array [6]byte = [6]byte{0, 0, 0, 0, 0, 0}
+	if (flags & EVIL) == EVIL {
+		flag_array[0] = 1
+	}
+	if (flags & EXP) == EXP {
+		flag_array[1] = 1
+	}
+	if (flags & IS_SIFF) == IS_SIFF {
+		flag_array[2] = 1
+	}
+	if (flags & CAPABILITY_UPDATE) == CAPABILITY_UPDATE {
+		flag_array[2] = 1
+	}
+	flagOption.OptionData = flag_array[:]
 
 	// handle the options
 	var capOption layers.IPv4Option
@@ -84,16 +102,17 @@ func setSiffFields(packet *netfilter.NFPacket, flags layers.IPv4Flag, capabiliti
 
 	updateOption.OptionData = updoots
 
-	optionArray[0] = capOption
-	optionArray[1] = updateOption
+	optionArray[0] = flagOption
+	optionArray[1] = capOption
+	optionArray[2] = updateOption
 
 	// add options
 	if (uint8(flags) & 0x3) == uint8(IS_SIFF|CAPABILITY_UPDATE) {
-		var optionSlice []layers.IPv4Option = optionArray[:2]
-		(*ipLayer).Options = optionSlice
+		(*ipLayer).Options = optionArray[:3]
 	} else if (uint8(flags) & 0x2) == uint8(IS_SIFF) {
-		var optionSlice []layers.IPv4Option = optionArray[:1]
-		(*ipLayer).Options = optionSlice
+		(*ipLayer).Options = optionArray[:2]
+	} else {	// only flags options
+		(*ipLayer).Options = optionArray[:1]
 	}
 
 	// we're done
@@ -111,7 +130,11 @@ func isSiff(packet *netfilter.NFPacket) bool {
 		return false
 	}
 
-	return ((uint8((*ipLayer).Flags)) & 0x02) == uint8(IS_SIFF)
+	if len((*ipLayer).Options) < 2 { // need at least flags and cap for siff packet
+		return false
+	}
+
+	return (*ipLayer).Options[0].OptionData[2] == 1
 }
 
 func isExp(packet *netfilter.NFPacket) bool {
@@ -125,7 +148,11 @@ func isExp(packet *netfilter.NFPacket) bool {
 		return false
 	}
 
-	return (uint8((*ipLayer).Flags) & (1 << 3)) == uint8(EXP)
+	if len((*ipLayer).Options) != 1 { // EXP packet only has flags option
+		return false
+	}
+
+	return (*ipLayer).Options[0].OptionData[1] == 1
 }
 
 func calcCapability(packet *netfilter.NFPacket) byte {
@@ -173,7 +200,11 @@ func hasCapabilityUpdate(packet *netfilter.NFPacket) bool {
 		return false
 	}
 
-	return (uint8((*ipLayer).Flags) & 0x03) == uint8(IS_SIFF|CAPABILITY_UPDATE)
+	if len((*ipLayer).Options) != 3 { // When it has a capability update, need all three options
+		return false
+	}
+
+	return ((*ipLayer).Options[0].OptionData[2] == 1) && ((*ipLayer).Options[0].OptionData[3] == 1)
 }
 
 func getOptions(packet *netfilter.NFPacket) []layers.IPv4Option {
@@ -213,7 +244,12 @@ func setCapabilities(packet *netfilter.NFPacket, capabilities []byte) {
 	option.OptionData = capabilities_array[:]
 
 	// add into Options
-	(*ipLayer).Options[0] = option
+	if len((*ipLayer).Options) > 1 {
+		(*ipLayer).Options[1] = option
+	} else if len((*ipLayer).Options) == 1 {
+		// var optionArray [1]layers.IPv4Option = [1]layers.IPv4Option{option}
+		(*ipLayer).Options = append((*ipLayer).Options, option)
+	}
 }
 
 func setUpdates(packet *netfilter.NFPacket, updates []byte) {
@@ -241,7 +277,12 @@ func setUpdates(packet *netfilter.NFPacket, updates []byte) {
 	option.OptionData = updates_array[:]
 
 	// add into Options
-	(*ipLayer).Options[1] = option
+	if len((*ipLayer).Options) > 3 {
+		(*ipLayer).Options[2] = option
+	} else if len((*ipLayer).Options) == 2 {
+		// var optionArray [1]layers.IPv4Option = [1]layers.IPv4Option{option}
+		(*ipLayer).Options = append((*ipLayer).Options, option)
+	}
 }
 
 func getCapabilities(packet *netfilter.NFPacket) []byte {
@@ -253,28 +294,8 @@ func getCapabilities(packet *netfilter.NFPacket) []byte {
 		ipLayer = layer.(*layers.IPv4)
 	}
 
-	var count int = 0
-	// count number of capabilities
-	for _, b := range(*ipLayer).Options[0].OptionData {
-		if b != 0 {
-			count = count + 1
-		}
-	}
-
-	if (*ipLayer).Options != nil {
-		return (*ipLayer).Options[0].OptionData[:count]
-	} else {
+	if !isSiff(packet) {
 		return nil
-	}
-}
-
-func getUpdates(packet *netfilter.NFPacket) []byte {
-	var ipLayer *layers.IPv4
-
-	/* Get the IPv4 layer, and if it doesn't exist, keep doing shit
-	   I can't be arsed for proper response outside the bounds of this project */
-	if layer := (*packet).Packet.Layer(layers.LayerTypeIPv4); layer != nil {
-		ipLayer = layer.(*layers.IPv4)
 	}
 
 	var count int = 0
@@ -287,6 +308,34 @@ func getUpdates(packet *netfilter.NFPacket) []byte {
 
 	if (*ipLayer).Options != nil {
 		return (*ipLayer).Options[1].OptionData[:count]
+	} else {
+		return nil
+	}
+}
+
+func getUpdates(packet *netfilter.NFPacket) []byte {
+	var ipLayer *layers.IPv4
+
+	if !hasCapabilityUpdate(packet) {
+		return nil
+	}
+
+	/* Get the IPv4 layer, and if it doesn't exist, keep doing shit
+	   I can't be arsed for proper response outside the bounds of this project */
+	if layer := (*packet).Packet.Layer(layers.LayerTypeIPv4); layer != nil {
+		ipLayer = layer.(*layers.IPv4)
+	}
+
+	var count int = 0
+	// count number of capabilities
+	for _, b := range(*ipLayer).Options[2].OptionData {
+		if b != 0 {
+			count = count + 1
+		}
+	}
+
+	if (*ipLayer).Options != nil {
+		return (*ipLayer).Options[2].OptionData[:count]
 	} else {
 		return nil
 	}
@@ -306,51 +355,6 @@ func addCapability(packet *netfilter.NFPacket, capability byte) {
 		var count int = 0
 		// count number of capabilities
 		for _, b := range(*ipLayer).Options[0].OptionData {
-			if b != 0 {
-				count = count + 1
-			}
-		}
-
-		if count == 4 {
-			// shift options forward
-			var capability_array [6]byte
-			capability_array[0] = (*ipLayer).Options[0].OptionData[1]
-			capability_array[1] = (*ipLayer).Options[0].OptionData[2]
-			capability_array[2] = (*ipLayer).Options[0].OptionData[3]
-			capability_array[3] = capability
-			// copy over two padding bytes
-			capability_array[4] = (*ipLayer).Options[0].OptionData[4]
-			capability_array[5] = (*ipLayer).Options[0].OptionData[5]
-
-			(*ipLayer).Options[0].OptionData = capability_array[:]
-		} else {
-			var capability_array [6]byte
-			var first_empty int = -1
-			// copy slice in optionData to array
-			for i, b := range (*ipLayer).Options[0].OptionData {
-				capability_array[i] = b
-				if b == 0 && first_empty == -1 {
-					first_empty = i
-				}
-			}
-			// store new capability
-			capability_array[first_empty] = capability
-			// set new slice
-			(*ipLayer).Options[0].OptionData = capability_array[:]
-		}
-	}
-}
-
-func addUpdate(packet *netfilter.NFPacket, capability byte) {
-	var ipLayer *layers.IPv4
-
-	/* Get the IPv4 layer, and if it doesn't exist, keep doing shit
-	   I can't be arsed for proper response outside the bounds of this project */
-	if (*ipLayer).Options != nil {
-
-		var count int = 0
-		// count number of capabilities
-		for _, b := range(*ipLayer).Options[1].OptionData {
 			if b != 0 {
 				count = count + 1
 			}
@@ -382,6 +386,51 @@ func addUpdate(packet *netfilter.NFPacket, capability byte) {
 			capability_array[first_empty] = capability
 			// set new slice
 			(*ipLayer).Options[1].OptionData = capability_array[:]
+		}
+	}
+}
+
+func addUpdate(packet *netfilter.NFPacket, capability byte) {
+	var ipLayer *layers.IPv4
+
+	/* Get the IPv4 layer, and if it doesn't exist, keep doing shit
+	   I can't be arsed for proper response outside the bounds of this project */
+	if (*ipLayer).Options != nil {
+
+		var count int = 0
+		// count number of capabilities
+		for _, b := range(*ipLayer).Options[2].OptionData {
+			if b != 0 {
+				count = count + 1
+			}
+		}
+
+		if count == 4 {
+			// shift options forward
+			var capability_array [6]byte
+			capability_array[0] = (*ipLayer).Options[2].OptionData[1]
+			capability_array[1] = (*ipLayer).Options[2].OptionData[2]
+			capability_array[2] = (*ipLayer).Options[2].OptionData[3]
+			capability_array[3] = capability
+			// copy over two padding bytes
+			capability_array[4] = (*ipLayer).Options[2].OptionData[4]
+			capability_array[5] = (*ipLayer).Options[2].OptionData[5]
+
+			(*ipLayer).Options[2].OptionData = capability_array[:]
+		} else {
+			var capability_array [6]byte
+			var first_empty int = -1
+			// copy slice in optionData to array
+			for i, b := range (*ipLayer).Options[2].OptionData {
+				capability_array[i] = b
+				if b == 0 && first_empty == -1 {
+					first_empty = i
+				}
+			}
+			// store new capability
+			capability_array[first_empty] = capability
+			// set new slice
+			(*ipLayer).Options[2].OptionData = capability_array[:]
 		}
 	}
 }
