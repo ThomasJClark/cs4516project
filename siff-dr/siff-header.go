@@ -35,11 +35,18 @@ func setSiffFields(packet *netfilter.NFPacket, flags layers.IPv4Flag, capabiliti
 	}
 
 	/* Modify the ip layer information */
+	var IHLchange uint16 = uint16((*ipLayer).IHL)
+
 	// compute new IHL and length
 	if (flags & 0x03) == IS_SIFF {
 		(*ipLayer).IHL = 7
 	} else if (flags & 0x03) == (IS_SIFF | CAPABILITY_UPDATE) {
 		(*ipLayer).IHL = 9
+	}
+
+	IHLchange = uint16((*ipLayer).IHL) - IHLchange
+	if IHLchange != 0 {
+		(*ipLayer).Length = (*ipLayer).Length + IHLchange * 4
 	}
 
 	/* change the total length by the change in IHL * 4 to convert from
