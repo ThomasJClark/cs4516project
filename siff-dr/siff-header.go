@@ -58,8 +58,11 @@ func setSiffFields(packet *netfilter.NFPacket, flags layers.IPv4Flag, capabiliti
 	var capOption layers.IPv4Option
 	capOption.OptionType = 86
 	capOption.OptionLength = uint8(len(capabilities)) + 2
-	capabilities = append(capabilities, 0)
-	capabilities = append(capabilities, 0)
+	// If packet sent contains only capabilities, requires padding
+	if (uint8(flags) & 0x3) != uint8(IS_SIFF|CAPABILITY_UPDATE) {
+		capabilities = append(capabilities, 0)
+		capabilities = append(capabilities, 0)
+	}
 	capOption.OptionData = capabilities
 
 	var updateOption layers.IPv4Option
