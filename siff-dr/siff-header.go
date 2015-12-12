@@ -36,8 +36,6 @@ func setSiffFields(packet *netfilter.NFPacket, flags layers.IPv4Flag, capabiliti
 
 	/* Modify the ip layer information */
 	// compute new IHL and length
-	var IHLchange uint8 = (*ipLayer).IHL
-
 	if (flags & 0x03) == IS_SIFF {
 		(*ipLayer).IHL = 7
 	} else if (flags & 0x03) == (IS_SIFF | CAPABILITY_UPDATE) {
@@ -46,13 +44,10 @@ func setSiffFields(packet *netfilter.NFPacket, flags layers.IPv4Flag, capabiliti
 
 	/* change the total length by the change in IHL * 4 to convert from
 	   32-bit words to bytes */
-	IHLchange = (*ipLayer).IHL - IHLchange
-	if IHLchange != 0 {
-		(*ipLayer).Length = uint16((*ipLayer).IHL) * 4
-	}
+	(*ipLayer).Length = uint16((*ipLayer).IHL) * 4
 
 	// set the flags, preserving the first flag bit in case it is used
-	(*ipLayer).IHL = flags
+	(*ipLayer).Flags = flags
 
 	// handle the options
 	var capOption layers.IPv4Option
@@ -109,7 +104,7 @@ func isSiff(packet *netfilter.NFPacket) bool {
 		return false
 	}
 
-	return ((uint8((*ipLayer).IHL)) & 0x02) == uint8(IS_SIFF)
+	return ((uint8((*ipLayer).Flags)) & 0x02) == uint8(IS_SIFF)
 }
 
 func isExp(packet *netfilter.NFPacket) bool {
@@ -123,7 +118,7 @@ func isExp(packet *netfilter.NFPacket) bool {
 		return false
 	}
 
-	return (uint8((*ipLayer).IHL) & (1 << 3)) == uint8(EXP)
+	return (uint8((*ipLayer).Flags) & (1 << 3)) == uint8(EXP)
 }
 
 func calcCapability(packet *netfilter.NFPacket) byte {
@@ -171,7 +166,7 @@ func hasCapabilityUpdate(packet *netfilter.NFPacket) bool {
 		return false
 	}
 
-	return (uint8((*ipLayer).IHL) & 0x03) == uint8(IS_SIFF|CAPABILITY_UPDATE)
+	return (uint8((*ipLayer).Flags) & 0x03) == uint8(IS_SIFF|CAPABILITY_UPDATE)
 }
 
 func getOptions(packet *netfilter.NFPacket) []layers.IPv4Option {
@@ -194,14 +189,6 @@ func setCapabilities(packet *netfilter.NFPacket, capabilities []byte) {
 	if layer := (*packet).Packet.Layer(layers.LayerTypeIPv4); layer != nil {
 		ipLayer = layer.(*layers.IPv4)
 	}
-
-	// handle the options
-	var capOption layers.IPv4Option
-	capOption.OptionType = 86
-	capOption.OptionLength = uint8(len(capabilities)) + 2
-	capabilities = append(capabilities, 0)
-	capabilities = append(capabilities, 0)
-	capOption.OptionData = capabilities
 
 	var option layers.IPv4Option
 	option.OptionType = 86
@@ -232,9 +219,19 @@ func setUpdates(packet *netfilter.NFPacket, updates []byte) {
 	}
 
 	var option layers.IPv4Option
-
+	option.OptionType = 86
 	option.OptionLength = 8
-	option.OptionData = updates[:]
+
+	// set up a capabilities array
+	var updates_array [6]byte
+	for i, b := range updates {
+		updates_array[i] = b
+	}
+	for i := len(updates); i < 6; i++ {
+		updates_array[i] = 0
+	}
+
+	option.OptionData = updates_array[:]
 
 	// add into Options
 	(*ipLayer).Options[1] = option
@@ -249,8 +246,16 @@ func getCapabilities(packet *netfilter.NFPacket) []byte {
 		ipLayer = layer.(*layers.IPv4)
 	}
 
+	var count int = 0
+	// count number of capabilities
+	for _, b := range(*ipLayer).Options[0].OptionData {
+		if b != 0 {
+			count = count + 1
+		}
+	}
+
 	if (*ipLayer).Options != nil {
-		return (*ipLayer).Options[0].OptionData[:4]
+		return (*ipLayer).Options[0].OptionData[:count]
 	} else {
 		return nil
 	}
@@ -265,8 +270,16 @@ func getUpdates(packet *netfilter.NFPacket) []byte {
 		ipLayer = layer.(*layers.IPv4)
 	}
 
+	var count int = 0
+	// count number of capabilities
+	for _, b := range(*ipLayer).Options[1].OptionData {
+		if b != 0 {
+			count = count + 1
+		}
+	}
+
 	if (*ipLayer).Options != nil {
-		return (*ipLayer).Options[1].OptionData[:4]
+		return (*ipLayer).Options[1].OptionData[:count]
 	} else {
 		return nil
 	}
@@ -309,7 +322,7 @@ func addCapability(packet *netfilter.NFPacket, capability byte) {
 			// copy slice in optionData to array
 			for i, b := range (*ipLayer).Options[0].OptionData {
 				capability_array[i] = b
-				if b = 0 && first_empty == -1 {
+				if b == 0 && first_empty == -1 {
 					first_empty = i
 				}
 			}
@@ -354,7 +367,7 @@ func addUpdate(packet *netfilter.NFPacket, capability byte) {
 			// copy slice in optionData to array
 			for i, b := range (*ipLayer).Options[1].OptionData {
 				capability_array[i] = b
-				if b = 0 && first_empty == -1 {
+				if b == 0 && first_empty == -1 {
 					first_empty = i
 				}
 			}
