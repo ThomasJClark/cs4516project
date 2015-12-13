@@ -10,8 +10,8 @@ import (
 
 // SIFF constants
 const (
-	EXP  layers.IPv4Flag = 1 << 3
-	EVIL layers.IPv4Flag = 1 << 2 // http://tools.ietf.org/html/rfc3514 ;)
+	EXP  layers.IPv4Flag = 1 << 2
+	EVIL layers.IPv4Flag = 1 << 3 // http://tools.ietf.org/html/rfc3514 ;)
 	// also known as Every Villian Is Lemons
 	IS_SIFF           layers.IPv4Flag = 1 << 1 // Specify a SIFF packet
 	CAPABILITY_UPDATE layers.IPv4Flag = 1 << 0 // includes capability update
@@ -38,12 +38,12 @@ func setSiffFields(packet *netfilter.NFPacket, flags layers.IPv4Flag, capabiliti
 	var IHLchange uint16 = uint16((*ipLayer).IHL)
 
 	// compute new IHL and length
-	if (flags & 0x03) == IS_SIFF {
-		(*ipLayer).IHL = 9
-	} else if (flags & 0x03) == (IS_SIFF | CAPABILITY_UPDATE) {
-		(*ipLayer).IHL = 11
+	if (flags & IS_SIFF) == IS_SIFF {
+		(*ipLayer).IHL = 8
+	} else if (flags & (IS_SIFF | CAPABILITY_UPDATE)) == (IS_SIFF | CAPABILITY_UPDATE) {
+		(*ipLayer).IHL = 10
 	} else {	// evil
-		(*ipLayer).IHL = 7
+		(*ipLayer).IHL = 5
 	}
 
 	IHLchange = uint16((*ipLayer).IHL) - IHLchange
@@ -55,64 +55,67 @@ func setSiffFields(packet *netfilter.NFPacket, flags layers.IPv4Flag, capabiliti
 	   32-bit words to bytes */
 	(*ipLayer).Length = uint16((*ipLayer).IHL) * 4
 
-	// set the flags option
-	var flagOption layers.IPv4Option
-	flagOption.OptionType = 86
-	flagOption.OptionLength = 8
-	var flag_array [6]byte = [6]byte{0, 0, 0, 0, 0, 0}
 	if (flags & EVIL) == EVIL {
-		flag_array[0] = 1
-	}
-	if (flags & EXP) == EXP {
-		flag_array[1] = 1
-	}
-	if (flags & IS_SIFF) == IS_SIFF {
-		flag_array[2] = 1
-	}
-	if (flags & CAPABILITY_UPDATE) == CAPABILITY_UPDATE {
-		flag_array[2] = 1
-	}
-	flagOption.OptionData = flag_array[:]
-
-	// handle the options
-	var capOption layers.IPv4Option
-	capOption.OptionType = 86
-
-	capOption.OptionLength = 8
-	var capabilities_array [6]byte
-	for i, b := range capabilities {
-		capabilities_array[i] = b
-	}
-	for i := len(capabilities); i < 6; i++ {
-		capabilities_array[i] = 0
-	}
-	capOption.OptionData = capabilities_array[:]
-
-	var updateOption layers.IPv4Option
-	updateOption.OptionType = 86
-	updateOption.OptionLength = 8
-
-	var updates_array [6]byte
-	for i, b := range updoots {
-		updates_array[i] = b
-	}
-	for i := len(updoots); i < 6; i++ {
-		updates_array[i] = 0
-	}
-
-	updateOption.OptionData = updoots
-
-	optionArray[0] = flagOption
-	optionArray[1] = capOption
-	optionArray[2] = updateOption
-
-	// add options
-	if (uint8(flags) & 0x3) == uint8(IS_SIFF|CAPABILITY_UPDATE) {
-		(*ipLayer).Options = optionArray[:3]
-	} else if (uint8(flags) & 0x2) == uint8(IS_SIFF) {
-		(*ipLayer).Options = optionArray[:2]
-	} else {	// only flags options
-		(*ipLayer).Options = optionArray[:1]
+		// set the evil flag. If we do this, we don't need to do anything else, 
+		// since evil packets are legacy, and don't have other flags 
+		(*ipLayer).Flags |= layers.IPv4EvilBit
+	} else {
+		// set the flags option
+		var flagOption layers.IPv4Option
+		flagOption.OptionType = 86
+		flagOption.OptionLength = 4
+		var flag_array [2]byte = [2]byte{0, 0}
+		if (flags & EXP) == EXP {
+			flag_array[0] = byte(EXP)
+		}
+		if (flags & IS_SIFF) == IS_SIFF {
+			flag_array[0] = byte(IS_SIFF)
+		}
+		if (flags & CAPABILITY_UPDATE) == CAPABILITY_UPDATE {
+			flag_array[0] = byte(IS_SIFF | CAPABILITY_UPDATE)
+		}
+		flagOption.OptionData = flag_array[:]
+	
+		// handle the options
+		var capOption layers.IPv4Option
+		capOption.OptionType = 86
+	
+		capOption.OptionLength = 8
+		var capabilities_array [6]byte
+		for i, b := range capabilities {
+			capabilities_array[i] = b
+		}
+		for i := len(capabilities); i < 6; i++ {
+			capabilities_array[i] = 0
+		}
+		capOption.OptionData = capabilities_array[:]
+	
+		var updateOption layers.IPv4Option
+		updateOption.OptionType = 86
+		updateOption.OptionLength = 8
+	
+		var updates_array [6]byte
+		for i, b := range updoots {
+			updates_array[i] = b
+		}
+		for i := len(updoots); i < 6; i++ {
+			updates_array[i] = 0
+		}
+	
+		updateOption.OptionData = updoots
+	
+		optionArray[0] = flagOption
+		optionArray[1] = capOption
+		optionArray[2] = updateOption
+	
+		// add options
+		if (uint8(flags) & 0x3) == uint8(IS_SIFF|CAPABILITY_UPDATE) {
+			(*ipLayer).Options = optionArray[:3]
+		} else if (uint8(flags) & 0x2) == uint8(IS_SIFF) {
+			(*ipLayer).Options = optionArray[:2]
+		} else {	// only flags options
+			(*ipLayer).Options = optionArray[:1]
+		}
 	}
 
 	// we're done
@@ -134,7 +137,7 @@ func isSiff(packet *netfilter.NFPacket) bool {
 		return false
 	}
 
-	return (*ipLayer).Options[0].OptionData[2] == 1
+	return ((*ipLayer).Options[0].OptionData[0] & byte(IS_SIFF)) == byte(IS_SIFF)
 }
 
 func isExp(packet *netfilter.NFPacket) bool {
@@ -152,7 +155,7 @@ func isExp(packet *netfilter.NFPacket) bool {
 		return false
 	}
 
-	return (*ipLayer).Options[0].OptionData[1] == 1
+	return ((*ipLayer).Options[0].OptionData[0] & byte(EXP)) == byte(EXP)
 }
 
 func calcCapability(packet *netfilter.NFPacket) byte {
@@ -204,7 +207,7 @@ func hasCapabilityUpdate(packet *netfilter.NFPacket) bool {
 		return false
 	}
 
-	return ((*ipLayer).Options[0].OptionData[2] == 1) && ((*ipLayer).Options[0].OptionData[3] == 1)
+	return ((*ipLayer).Options[0].OptionData[0] & byte(IS_SIFF | CAPABILITY_UPDATE)) == byte(IS_SIFF | CAPABILITY_UPDATE)
 }
 
 func getOptions(packet *netfilter.NFPacket) []layers.IPv4Option {
