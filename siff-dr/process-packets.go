@@ -24,8 +24,8 @@ func ProcessOutputPackets() {
 		// Empty arrays since don't know capability yet
 		caps := []byte{9, 9, 9, 9}
 		var empty2 []byte
-		var flags layers.IPv4Flag
-		flags |= IS_SIFF
+		var flags uint8
+		flags |= IsSiff
 		setSiffFields(&packet, flags, caps, empty2)
 
 		if isSiff(&packet) {
