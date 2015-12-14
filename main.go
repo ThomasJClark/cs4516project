@@ -19,9 +19,12 @@ func main() {
 	log.SetFlags(log.Ltime)
 	log.Println("STARTING")
 
+	messages := make(chan siffdr.PendingCU, 2)
+
 	switch *modeStr {
 	case "client":
-		go siffdr.ProcessOutputPackets()
+		go siffdr.ProcessOutputPackets(messages)
+		go siffdr.ProcessInputPackets(messages)
 		requestData()
 
 	case "attacker":
@@ -29,7 +32,8 @@ func main() {
 		requestData()
 
 	case "server":
-		go siffdr.ProcessOutputPackets()
+		go siffdr.ProcessOutputPackets(messages)
+		go siffdr.ProcessInputPackets(messages)
 		serveData()
 
 	case "siff-router":

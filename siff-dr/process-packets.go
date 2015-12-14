@@ -8,9 +8,14 @@ import (
 	"github.com/google/gopacket/layers"
 )
 
+type PendingCU struct {
+	cu  []byte
+	exp bool
+}
+
 /*ProcessOutputPackets intercepts packets before leaving an end host to process
 them for siff-dr*/
-func ProcessOutputPackets() {
+func ProcessOutputPackets(updates chan PendingCU) {
 	nfq, err := netfilter.NewNFQueue(0, 100000, 0xffff)
 	if err != nil {
 		log.Fatal(err)
@@ -22,11 +27,30 @@ func ProcessOutputPackets() {
 		log.Println("Adding SIFF headers")
 
 		// Empty arrays since don't know capability yet
-		var caps = []byte{9, 9, 9, 9}
-		var empty2 []byte
+		caps := []byte{9, 9, 9, 9}
+		var cu []byte
+		setExp := false
+
 		var flags uint8
 		flags |= IsSiff
-		setSiffFields(&packet, flags, caps, empty2)
+
+		//Put in capability update if one is waiting
+		select {
+		case update := <-updates:
+			log.Println("Got CU, Prepareing to send", update.cu)
+			cu = update.cu
+			setExp = update.exp
+			flags |= CapabilityUpdate
+		default:
+			log.Println("No CU, nothing to see here")
+		}
+
+		if setExp {
+			flags |= Exp
+		}
+
+		//Make the packet siff
+		setSiffFields(&packet, flags, caps, cu)
 
 		if isExp(&packet) {
 			log.Println("Packet is EXP")
@@ -91,4 +115,42 @@ func ProcessForwardPackets() {
 			packet.SetResult(netfilter.NF_ACCEPT, serializedPacket)
 		}
 	}
+}
+
+/* Processes input packets to accept or reject SIFF handshakes, and handle capability updates
+ */
+func ProcessInputPackets(updates chan PendingCU) {
+	nfq, err := netfilter.NewNFQueue(1, 100000, 0xffff)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	log.Println("Waiting for input packets")
+	for packet := range nfq.GetPackets() {
+
+		log.Println("INPUT - got a packet")
+		//Check for capability updates
+		if hasCapabilityUpdate(&packet) {
+			log.Println("INPUT Got capability Update")
+		}
+		//Handle EXP packet
+		if isSiff(&packet) && isExp(&packet) {
+			log.Println("INPUT - Recvd pkt is EXP SIFF")
+			capabilities := getCapabilities(&packet)
+			//Reverse capabilities
+			reverseCapability(capabilities)
+			update := PendingCU{cu: capabilities, exp: true}
+
+			select {
+			case updates <- update:
+				fmt.Println("INPUT: sent pending cu")
+			default:
+				fmt.Println("INPUT: error, pending cu not sent")
+			}
+
+		}
+		packet.SetVerdict(netfilter.NF_ACCEPT)
+
+	}
+
 }

@@ -48,6 +48,7 @@ docker run --name server -h server --cap-add=NET_ADMIN -t siff /bin/bash -c "
     route add default gw server-router
     route add -host client/32 gw server-router
     iptables -A OUTPUT -j NFQUEUE --queue-num 0
+    iptables -A INPUT -j NFQUEUE --queue-num 1
     /go/bin/cs4516project -mode server" >> server.log 2>&1 &
 
 docker run --name server-router -h server-router --cap-add=NET_ADMIN -t siff /bin/bash -c "
@@ -115,6 +116,7 @@ docker run --name client -h client --cap-add=NET_ADMIN -t siff /bin/bash -c "
     route add -host server/32 gw client-router
     route add default gw client-router
     iptables -A OUTPUT -j NFQUEUE --queue-num 0
+    iptables -A INPUT -j NFQUEUE --queue-num 1
     /go/bin/cs4516project -mode client" >> client.log 2>&1 &
 
 docker run --name attacker -h attacker --cap-add=NET_ADMIN -t siff /bin/bash -c "

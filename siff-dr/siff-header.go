@@ -103,6 +103,9 @@ func isSiff(packet *netfilter.NFPacket) bool {
 		return false
 	}
 
+	if len(ipLayer.Options) == 0 {
+		return false
+	}
 	return (ipLayer.Options[0].OptionData[0] & byte(IsSiff)) == byte(IsSiff)
 }
 
@@ -117,6 +120,9 @@ func isExp(packet *netfilter.NFPacket) bool {
 		return false
 	}
 
+	if len(ipLayer.Options) == 0 {
+		return false
+	}
 	return (ipLayer.Options[0].OptionData[0] & byte(Exp)) == byte(Exp)
 }
 
@@ -167,7 +173,10 @@ func hasCapabilityUpdate(packet *netfilter.NFPacket) bool {
 		return false
 	}
 
-	return (ipLayer.Options[0].OptionData[0] & byte(IsSiff|CapabilityUpdate)) == byte(IsSiff|CapabilityUpdate)
+	if len(ipLayer.Options) == 0 {
+		return false
+	}
+	return len(ipLayer.Options[0].OptionData) == 12
 }
 
 func getOptions(packet *netfilter.NFPacket) []layers.IPv4Option {
@@ -251,4 +260,22 @@ func addUpdate(packet *netfilter.NFPacket, capability byte) {
 			ipLayer.Options[0].OptionData[i] = updates[i-6]
 		}
 	}
+}
+
+/*
+Reverse the capability to read it to be sent back
+*/
+func reverseCapability(capability []byte) {
+	//find end of array
+	length := len(capability)
+	for length = len(capability) - 1; capability[length] == 0 && length > 0; length-- {
+		//do nothing
+	}
+
+	for i := 0; i <= int(length/2); i++ {
+		temp := capability[length-i]
+		capability[length-i] = capability[i]
+		capability[i] = temp
+	}
+
 }
