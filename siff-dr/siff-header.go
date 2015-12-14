@@ -111,6 +111,9 @@ func isSiff(packet *netfilter.NFPacket) bool {
 		return false
 	}
 
+	if len(ipLayer.Options) == 0 {
+		return false
+	}
 	return (ipLayer.Options[0].OptionData[0] & byte(IsSiff)) == byte(IsSiff)
 }
 
@@ -125,6 +128,9 @@ func isExp(packet *netfilter.NFPacket) bool {
 		return false
 	}
 
+	if len(ipLayer.Options) == 0 {
+		return false
+	}
 	return (ipLayer.Options[0].OptionData[0] & byte(Exp)) == byte(Exp)
 }
 
@@ -175,7 +181,10 @@ func hasCapabilityUpdate(packet *netfilter.NFPacket) bool {
 		return false
 	}
 
-	return (ipLayer.Options[0].OptionData[0] & byte(IsSiff|CapabilityUpdate)) == byte(IsSiff|CapabilityUpdate)
+	if len(ipLayer.Options) == 0 {
+		return false
+	}
+	return len(ipLayer.Options[0].OptionData) == 12
 }
 
 func getOptions(packet *netfilter.NFPacket) []layers.IPv4Option {
