@@ -40,10 +40,10 @@ func ProcessOutputPackets(updates chan PendingCU) {
 			log.Println("No CU, nothing to see here")
 		}
 
-		var flags unit8
-		flags |= IS_SIFF
+		var flags uint8
+		flags |= IsSiff
 		if setExp {
-			flags |= EXP
+			flags |= Exp
 		}
 		setSiffFields(&packet, flags, caps, cu)
 
