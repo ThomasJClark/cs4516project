@@ -51,10 +51,6 @@ func setSiffFields(packet *netfilter.NFPacket, flags uint8, capabilities []byte,
 		(*ipLayer).Length = (*ipLayer).Length + IHLchange*4
 	}
 
-	/* change the total length by the change in IHL * 4 to convert from
-	   32-bit words to bytes */
-	(*ipLayer).Length = uint16((*ipLayer).IHL) * 4
-
 	if (flags & Evil) == Evil {
 		// set the evil flag. If we do this, we don't need to do anything else,
 		// since evil packets are legacy, and don't have other flags
