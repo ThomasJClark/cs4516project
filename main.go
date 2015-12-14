@@ -24,6 +24,7 @@ func main() {
 	switch *modeStr {
 	case "client":
 		go siffdr.ProcessOutputPackets(messages)
+		go siffdr.ProcessInputPackets(messages)
 		requestData()
 
 	case "attacker":
