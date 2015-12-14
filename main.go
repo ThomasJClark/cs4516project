@@ -20,12 +20,13 @@ func main() {
 	log.Println("STARTING")
 
 	messages := make(chan siffdr.PendingCU, 2)
+	defer log.Println("oh shit")
 
 	switch *modeStr {
 	case "client":
 		go siffdr.ProcessOutputPackets(messages)
 		go siffdr.ProcessInputPackets(messages)
-		requestData()
+		measureThroughput(10)
 
 	case "attacker":
 		go siffdr.MakePacketsEvil()

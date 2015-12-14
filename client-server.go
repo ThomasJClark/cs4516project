@@ -22,7 +22,7 @@ func serveData() {
 
 /*requestData is a simple test function to request non-malicous data from
 the server.  This is run on the client and the attacker machine.*/
-func requestData() {
+func requestData() error {
 	log.Println("Sending HTTP request to http://server:8080")
 
 	// Make an HTTP request to the server and print out the response
@@ -37,10 +37,27 @@ func requestData() {
 
 	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		log.Fatal(err)
+		//		log.Fatal(err)
+		return err
 	}
 
 	// If the network is working, this should print:
 	//     Got data: "Sample server data"
 	log.Println("Got data:", fmt.Sprintf("\"%s\"", string(body)))
+	return nil
+}
+
+func measureThroughput(numRequests int) {
+	success := 0.0
+	var result error
+	for i := 0; i < numRequests; i++ {
+		result = requestData()
+		if result == nil {
+			success++
+		} else {
+			log.Println(result)
+		}
+	}
+	successrate := success / float64(numRequests)
+	log.Println("Measured success rate: ", successrate)
 }
