@@ -3,6 +3,7 @@ package siffdr
 import (
 	"fmt"
 	"log"
+    "net"
 
 	"github.com/ThomasJClark/cs4516project/pkg/go-netfilter-queue"
 	"github.com/google/gopacket/layers"
@@ -10,26 +11,37 @@ import (
 
 type PendingCU struct {
 	cu  []byte
+    ip net.IP
 	exp bool
 }
 
+type Capability []byte
+
 /*ProcessOutputPackets intercepts packets before leaving an end host to process
 them for siff-dr*/
-func ProcessOutputPackets(updates chan PendingCU) {
+func ProcessOutputPackets(updates chan PendingCU, capability chan Capability) {
 	nfq, err := netfilter.NewNFQueue(0, 100000, 0xffff)
 	if err != nil {
 		log.Fatal(err)
 	}
 
+    pending := make(map[string]PendingCU)
+
 	log.Println("Waiting for output packets")
+	caps := []byte{0, 0, 0, 0}
 	for packet := range nfq.GetPackets() {
 		log.Println("Got packet")
 		log.Println("Adding SIFF headers")
 
 		// Empty arrays since don't know capability yet
-		caps := []byte{9, 9, 9, 9}
 		var cu []byte
 		setExp := false
+
+		tcpLayer := packet.Packet.TransportLayer().(*layers.TCP)
+		if tcpLayer.SYN && !tcpLayer.ACK {
+            log.Println("Got TCP SYN (not ACK)")
+			setExp = true
+		}
 
 		var flags uint8
 		flags |= IsSiff
@@ -37,20 +49,34 @@ func ProcessOutputPackets(updates chan PendingCU) {
 		//Put in capability update if one is waiting
 		select {
 		case update := <-updates:
-			log.Println("Got CU, Prepareing to send", update.cu)
-			cu = update.cu
-			setExp = update.exp
-			flags |= CapabilityUpdate
+			log.Println("Got CU, Preparing to send", update.cu)
+            pending[update.ip.String()] = update
 		default:
 			log.Println("No CU, nothing to see here")
 		}
+
+        ipLayer := packet.Packet.NetworkLayer().(*layers.IPv4)
+        update, updateFound := pending[ipLayer.DstIP.String()]
+        if updateFound && update.exp {
+			cu = update.cu
+			setExp = update.exp
+			flags |= CapabilityUpdate
+            log.Println("Sending CU to ", ipLayer.DstIP)
+        }
+
+        if updateFound {
+            delete(pending, ipLayer.DstIP.String())
+        }
 
 		if setExp {
 			flags |= Exp
 		}
 
-		//Make the packet siff
-		setSiffFields(&packet, flags, caps, cu)
+		select {
+		case caps := <-capability:
+			log.Println("Got new capabilities", caps)
+		default:
+		}
 
 		if isExp(&packet) {
 			log.Println("Packet is EXP")
@@ -58,6 +84,9 @@ func ProcessOutputPackets(updates chan PendingCU) {
 		if isSiff(&packet) {
 			log.Println("Packet is SIFF")
 		}
+
+		//Make the packet siff
+		setSiffFields(&packet, flags, caps, cu)
 
 		// Get serialization of modified packet
 		serializedPacket, err := serialize(packet.Packet.NetworkLayer().(*layers.IPv4))
@@ -83,11 +112,14 @@ func ProcessForwardPackets() {
 	for packet := range nfq.GetPackets() {
 		ip := packet.Packet.NetworkLayer().(*layers.IPv4)
 
-		if isExp(&packet) {
+        if hasCapabilityUpdate(&packet) {
+            log.Println("Got CU")
+            packet.SetVerdict(netfilter.NF_ACCEPT)
+            continue
+		} else if isExp(&packet) {
 			log.Println("Got exp packet")
 			capability := calcCapability(&packet)
 			addCapability(&packet, capability)
-			log.Println(getCapabilities(&packet))
 		} else if isSiff(&packet) {
 			log.Println("Got SIFF packet for", hostname(ip.DstIP))
 			capability := calcCapability(&packet)
@@ -119,7 +151,7 @@ func ProcessForwardPackets() {
 
 /* Processes input packets to accept or reject SIFF handshakes, and handle capability updates
  */
-func ProcessInputPackets(updates chan PendingCU) {
+func ProcessInputPackets(updates chan PendingCU, capability chan Capability) {
 	nfq, err := netfilter.NewNFQueue(1, 100000, 0xffff)
 	if err != nil {
 		log.Fatal(err)
@@ -132,6 +164,7 @@ func ProcessInputPackets(updates chan PendingCU) {
 		//Check for capability updates
 		if hasCapabilityUpdate(&packet) {
 			log.Println("INPUT Got capability Update")
+			capability <- getUpdates(&packet)
 		}
 		//Handle EXP packet
 		if isSiff(&packet) && isExp(&packet) {
@@ -139,18 +172,18 @@ func ProcessInputPackets(updates chan PendingCU) {
 			capabilities := getCapabilities(&packet)
 			//Reverse capabilities
 			reverseCapability(capabilities)
-			update := PendingCU{cu: capabilities, exp: true}
+            ipLayer := packet.Packet.NetworkLayer().(*layers.IPv4)
+			update := PendingCU{cu: capabilities, ip: ipLayer.SrcIP, exp: true}
 
-			select {
-			case updates <- update:
-				fmt.Println("INPUT: sent pending cu")
-			default:
-				fmt.Println("INPUT: error, pending cu not sent")
-			}
-
+            if (ipLayer.Flags & layers.IPv4EvilBit) == 0 {
+                select {
+                case updates <- update:
+                    fmt.Println("INPUT: queued pending cu")
+                default:
+                    fmt.Println("INPUT: error, pending cu not queued")
+                }
+            }
 		}
 		packet.SetVerdict(netfilter.NF_ACCEPT)
-
 	}
-
 }

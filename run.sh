@@ -117,16 +117,16 @@ docker run --name client -h client --cap-add=NET_ADMIN -t siff /bin/bash -c "
     route add default gw client-router
     iptables -A OUTPUT -j NFQUEUE --queue-num 0
     iptables -A INPUT -j NFQUEUE --queue-num 1
-    /go/bin/cs4516project -mode client" >> client.log 2>&1 &
+    /go/bin/cs4516project -mode client" >> client.log 2>&1
 
-docker run --name attacker -h attacker --cap-add=NET_ADMIN -t siff /bin/bash -c "
-    echo -e '$HOSTS' > /etc/hosts
-    ip addr flush dev eth0
-    ip addr add $ATTACKER dev eth0
-    route add -host legacy-router/32 eth0
-    route add -host server/32 gw legacy-router
-    route add default gw legacy-router
-    iptables -A OUTPUT -j NFQUEUE --queue-num 0
-    /go/bin/cs4516project -mode attacker" >> attacker.log 2>&1
+#docker run --name attacker -h attacker --cap-add=NET_ADMIN -t siff /bin/bash -c "
+    #echo -e '$HOSTS' > /etc/hosts
+    #ip addr flush dev eth0
+    #ip addr add $ATTACKER dev eth0
+    #route add -host legacy-router/32 eth0
+    #route add -host server/32 gw legacy-router
+    #route add default gw legacy-router
+    #iptables -A OUTPUT -j NFQUEUE --queue-num 0
+    #/go/bin/cs4516project -mode attacker" >> attacker.log 2>&1
 
 docker ps -a

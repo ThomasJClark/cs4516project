@@ -175,8 +175,8 @@ func hasCapabilityUpdate(packet *netfilter.NFPacket) bool {
 
 	if len(ipLayer.Options) == 0 {
 		return false
-	}
-	return len(ipLayer.Options[0].OptionData) == 12
+    }
+	return len(ipLayer.Options[0].OptionData) == 10
 }
 
 func getOptions(packet *netfilter.NFPacket) []layers.IPv4Option {
@@ -241,7 +241,6 @@ func addCapability(packet *netfilter.NFPacket, capability byte) {
 		capabilities = append([]byte{capability}, capabilities...)
 		capabilities = capabilities[:4]
 		for i := 2; i < 6; i++ {
-			log.Println(capabilities)
 			ipLayer.Options[0].OptionData[i] = capabilities[i-2]
 		}
 	}
