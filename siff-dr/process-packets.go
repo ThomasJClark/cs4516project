@@ -8,9 +8,14 @@ import (
 	"github.com/google/gopacket/layers"
 )
 
+type PendingCU struct {
+	cu  []byte
+	exp bool
+}
+
 /*ProcessOutputPackets intercepts packets before leaving an end host to process
 them for siff-dr*/
-func ProcessOutputPackets() {
+func ProcessOutputPackets(updates chan PendingCU) {
 	nfq, err := netfilter.NewNFQueue(0, 100000, 0xffff)
 	if err != nil {
 		log.Fatal(err)
@@ -22,11 +27,21 @@ func ProcessOutputPackets() {
 		log.Println("Adding SIFF headers")
 
 		// Empty arrays since don't know capability yet
-		caps := []byte{9, 9, 9, 9}
-		var empty2 []byte
+		caps := []byte{7, 8, 9, 10}
+		var cu []byte
+
+		//TODO handle sending exp
+		select {
+		case update := <-updates:
+			log.Println("Got CU, Prepareing to send", update.cu)
+			cu = update.cu
+		default:
+			log.Println("No CU, nothing to see here")
+		}
+
 		var flags layers.IPv4Flag
 		flags |= IS_SIFF
-		setSiffFields(&packet, flags, caps, empty2)
+		setSiffFields(&packet, flags, caps, cu)
 
 		if isSiff(&packet) {
 			log.Println("Packet is SIFF")
@@ -92,7 +107,7 @@ func ProcessForwardPackets() {
 
 /* Processes input packets to accept or reject SIFF handshakes, and handle capability updates
  */
-func ProcessInputPackets() {
+func ProcessInputPackets(updates chan PendingCU) {
 	nfq, err := netfilter.NewNFQueue(1, 100000, 0xffff)
 	if err != nil {
 		log.Fatal(err)
@@ -107,6 +122,15 @@ func ProcessInputPackets() {
 			capabilities := getCapabilities(&packet)
 			//Reverse capabilities
 			reverseCapability(capabilities)
+			update := PendingCU{cu: capabilities, exp: true}
+
+			select {
+			case updates <- update:
+				fmt.Println("INPUT: sent pending cu")
+			default:
+				fmt.Println("INPUT: error, pending cu not sent")
+			}
+
 		}
 		packet.SetVerdict(netfilter.NF_ACCEPT)
 
