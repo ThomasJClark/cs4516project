@@ -40,7 +40,7 @@ func ProcessOutputPackets(updates chan PendingCU) {
 			log.Println("No CU, nothing to see here")
 		}
 
-		var flags layers.IPv4Flag
+		var flags unit8
 		flags |= IS_SIFF
 		if setExp {
 			flags |= EXP
