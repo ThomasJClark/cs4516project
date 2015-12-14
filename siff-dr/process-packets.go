@@ -22,11 +22,11 @@ func ProcessOutputPackets() {
 		log.Println("Adding SIFF headers")
 
 		// Empty arrays since don't know capability yet
-		var empty []byte
+		var caps = []byte{9, 9, 9, 9}
 		var empty2 []byte
 		var flags uint8
-		flags |= Exp
-		setSiffFields(&packet, flags, empty, empty2)
+		flags |= IsSiff
+		setSiffFields(&packet, flags, caps, empty2)
 
 		if isExp(&packet) {
 			log.Println("Packet is EXP")
@@ -35,9 +35,11 @@ func ProcessOutputPackets() {
 			log.Println("Packet is SIFF")
 		}
 
+		log.Println(packet.Packet.TransportLayer().(*layers.TCP))
 		//packet.SetVerdict(netfilter.NF_ACCEPT)
 		// Get serialization of modified packet
 		serializedPacket, err := serialize(packet.Packet.NetworkLayer().(*layers.IPv4))
+		log.Println(serializedPacket)
 		if err != nil {
 			log.Println(err)
 			log.Println("Failed to serialize packet, dropping")
@@ -67,16 +69,18 @@ func ProcessForwardPackets() {
 			log.Println(getCapabilities(&packet))
 		} else if isSiff(&packet) {
 			log.Println("Got SIFF packet for", hostname(ip.DstIP))
+			serializedPacket, _ := serialize(packet.Packet.NetworkLayer().(*layers.IPv4))
+			log.Println(serializedPacket)
 			capability := calcCapability(&packet)
 			capabilities := getCapabilities(&packet)
-			shiftCapability(&packet)
 			if len(capabilities) < 1 || capabilities[0] != capability {
-				log.Println("Capability mismatch: ", fmt.Sprintf("%c %c, dropping", capability, capabilities))
+				log.Println("Capability mismatch: ", fmt.Sprintf("%d %d, dropping", capability, capabilities))
 				packet.SetVerdict(netfilter.NF_DROP)
 				continue
 			} else {
 				log.Println("Capability match, forwarding packet")
 			}
+			shiftCapability(&packet)
 		} else {
 			log.Println("Got packet for", hostname(ip.DstIP))
 			packet.SetVerdict(netfilter.NF_ACCEPT)
@@ -84,6 +88,7 @@ func ProcessForwardPackets() {
 		}
 
 		serializedPacket, err := serialize(packet.Packet.NetworkLayer().(*layers.IPv4))
+		log.Println(serializedPacket)
 		if err != nil {
 			log.Println(err)
 			log.Println("Failed to serialize packet, dropping")
