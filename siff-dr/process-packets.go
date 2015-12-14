@@ -28,7 +28,7 @@ func ProcessOutputPackets(updates chan PendingCU, capability chan Capability) {
 	pending := make(map[string]PendingCU)
 
 	log.Println("Waiting for output packets")
-	caps := []byte{0, 0, 0, 0}
+	caps := Capability([]byte{0, 0, 0, 0})
 	for packet := range nfq.GetPackets() {
 		log.Println("Got packet")
 		log.Println("Adding SIFF headers")
@@ -90,6 +90,7 @@ func ProcessOutputPackets(updates chan PendingCU, capability chan Capability) {
 
 		// Get serialization of modified packet
 		serializedPacket, err := serialize(packet.Packet.NetworkLayer().(*layers.IPv4))
+		log.Println(serializedPacket)
 		if err != nil {
 			log.Println(err)
 			log.Println("Failed to serialize packet, dropping")
@@ -139,6 +140,7 @@ func ProcessForwardPackets() {
 		}
 
 		serializedPacket, err := serialize(packet.Packet.NetworkLayer().(*layers.IPv4))
+		log.Println(serializedPacket)
 		if err != nil {
 			log.Println(err)
 			log.Println("Failed to serialize packet, dropping")
