@@ -47,7 +47,10 @@ func requestData() error {
 	return nil
 }
 
-func measureThroughput(numRequests int) {
+/*
+measureData runs requestData() numRequests times, and outputs the success rate
+ */
+func measureData(numRequests int) {
 	success := 0.0
 	var result error
 	for i := 0; i < numRequests; i++ {
@@ -58,6 +61,6 @@ func measureThroughput(numRequests int) {
 			log.Println(result)
 		}
 	}
-	successrate := success / float64(numRequests)
-	log.Println("Measured success rate: ", successrate)
+	successrate := (success / float64(numRequests)) * 100.0
+	log.Println("Measured success rate: ", successrate, "%")
 }

@@ -26,7 +26,7 @@ func main() {
 	case "client":
 		go siffdr.ProcessOutputPackets(messages)
 		go siffdr.ProcessInputPackets(messages)
-		measureThroughput(10)
+		measureData(100)
 
 	case "attacker":
 		go siffdr.MakePacketsEvil()
