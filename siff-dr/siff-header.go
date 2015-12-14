@@ -42,13 +42,13 @@ func setSiffFields(packet *netfilter.NFPacket, flags uint8, capabilities []byte,
 		(*ipLayer).IHL = 8
 	} else if (flags & (IsSiff | CapabilityUpdate)) == (IsSiff | CapabilityUpdate) {
 		(*ipLayer).IHL = 10
-	} else {	// evil
+	} else { // evil
 		(*ipLayer).IHL = 5
 	}
 
 	IHLchange = uint16((*ipLayer).IHL) - IHLchange
 	if IHLchange != 0 {
-		(*ipLayer).Length = (*ipLayer).Length + IHLchange * 4
+		(*ipLayer).Length = (*ipLayer).Length + IHLchange*4
 	}
 
 	/* change the total length by the change in IHL * 4 to convert from
@@ -56,8 +56,8 @@ func setSiffFields(packet *netfilter.NFPacket, flags uint8, capabilities []byte,
 	(*ipLayer).Length = uint16((*ipLayer).IHL) * 4
 
 	if (flags & Evil) == Evil {
-		// set the evil flag. If we do this, we don't need to do anything else, 
-		// since evil packets are legacy, and don't have other flags 
+		// set the evil flag. If we do this, we don't need to do anything else,
+		// since evil packets are legacy, and don't have other flags
 		(*ipLayer).Flags |= layers.IPv4EvilBit
 	} else {
 		// set the flags option
@@ -68,18 +68,17 @@ func setSiffFields(packet *netfilter.NFPacket, flags uint8, capabilities []byte,
 		if (flags & Exp) == Exp {
 			flag_array[0] = byte(Exp)
 		}
-		if (flags & IsSiff) == IsSiff {
-			flag_array[0] = byte(IsSiff)
-		}
 		if (flags & CapabilityUpdate) == CapabilityUpdate {
 			flag_array[0] = byte(IsSiff | CapabilityUpdate)
+		} else if (flags & IsSiff) == IsSiff {
+			flag_array[0] = byte(IsSiff)
 		}
 		flagOption.OptionData = flag_array[:]
-	
+
 		// handle the options
 		var capOption layers.IPv4Option
 		capOption.OptionType = 86
-	
+
 		capOption.OptionLength = 8
 		var capabilities_array [6]byte
 		for i, b := range capabilities {
@@ -89,11 +88,11 @@ func setSiffFields(packet *netfilter.NFPacket, flags uint8, capabilities []byte,
 			capabilities_array[i] = 0
 		}
 		capOption.OptionData = capabilities_array[:]
-	
+
 		var updateOption layers.IPv4Option
 		updateOption.OptionType = 86
 		updateOption.OptionLength = 8
-	
+
 		var updates_array [6]byte
 		for i, b := range updoots {
 			updates_array[i] = b
@@ -101,19 +100,19 @@ func setSiffFields(packet *netfilter.NFPacket, flags uint8, capabilities []byte,
 		for i := len(updoots); i < 6; i++ {
 			updates_array[i] = 0
 		}
-	
+
 		updateOption.OptionData = updoots
-	
+
 		optionArray[0] = flagOption
 		optionArray[1] = capOption
 		optionArray[2] = updateOption
-	
+
 		// add options
 		if (uint8(flags) & 0x3) == uint8(IsSiff|CapabilityUpdate) {
 			(*ipLayer).Options = optionArray[:3]
 		} else if (uint8(flags) & 0x2) == uint8(IsSiff) {
 			(*ipLayer).Options = optionArray[:2]
-		} else {	// only flags options
+		} else { // only flags options
 			(*ipLayer).Options = optionArray[:1]
 		}
 	}
@@ -188,8 +187,8 @@ func shiftCapability(packet *netfilter.NFPacket) {
 	// Cut out empty options (more seem to get added for some reason at each hop)
 	(*ipLayer).Options = (*ipLayer).Options[:(*ipLayer).IHL-6]
 	// Shift all towards 0
-	(*ipLayer).Options[0].OptionData = (*ipLayer).Options[0].OptionData[1:]
-	(*ipLayer).Options[0].OptionData = append((*ipLayer).Options[0].OptionData, 9)
+	(*ipLayer).Options[1].OptionData = (*ipLayer).Options[1].OptionData[1:]
+	(*ipLayer).Options[1].OptionData = append((*ipLayer).Options[1].OptionData, 9)
 }
 
 func hasCapabilityUpdate(packet *netfilter.NFPacket) bool {
@@ -207,7 +206,7 @@ func hasCapabilityUpdate(packet *netfilter.NFPacket) bool {
 		return false
 	}
 
-	return ((*ipLayer).Options[0].OptionData[0] & byte(IsSiff | CapabilityUpdate)) == byte(IsSiff | CapabilityUpdate)
+	return ((*ipLayer).Options[0].OptionData[0] & byte(IsSiff|CapabilityUpdate)) == byte(IsSiff|CapabilityUpdate)
 }
 
 func getOptions(packet *netfilter.NFPacket) []layers.IPv4Option {
@@ -234,7 +233,7 @@ func setCapabilities(packet *netfilter.NFPacket, capabilities []byte) {
 	var option layers.IPv4Option
 	option.OptionType = 86
 	option.OptionLength = 8
-	
+
 	// set up a capabilities array
 	var capabilities_array [6]byte
 	for i, b := range capabilities {
@@ -303,7 +302,7 @@ func getCapabilities(packet *netfilter.NFPacket) []byte {
 
 	var count int = 0
 	// count number of capabilities
-	for _, b := range(*ipLayer).Options[1].OptionData {
+	for _, b := range (*ipLayer).Options[1].OptionData {
 		if b != 0 {
 			count = count + 1
 		}
@@ -331,7 +330,7 @@ func getUpdates(packet *netfilter.NFPacket) []byte {
 
 	var count int = 0
 	// count number of capabilities
-	for _, b := range(*ipLayer).Options[2].OptionData {
+	for _, b := range (*ipLayer).Options[2].OptionData {
 		if b != 0 {
 			count = count + 1
 		}
@@ -357,7 +356,7 @@ func addCapability(packet *netfilter.NFPacket, capability byte) {
 
 		var count int = 0
 		// count number of capabilities
-		for _, b := range(*ipLayer).Options[0].OptionData {
+		for _, b := range (*ipLayer).Options[0].OptionData {
 			if b != 0 {
 				count = count + 1
 			}
@@ -402,7 +401,7 @@ func addUpdate(packet *netfilter.NFPacket, capability byte) {
 
 		var count int = 0
 		// count number of capabilities
-		for _, b := range(*ipLayer).Options[2].OptionData {
+		for _, b := range (*ipLayer).Options[2].OptionData {
 			if b != 0 {
 				count = count + 1
 			}
