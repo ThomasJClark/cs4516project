@@ -3,7 +3,6 @@ package siffdr
 import (
 	"bytes"
 	"crypto/sha1"
-	"encoding/binary"
 	"log"
 	"os"
 
@@ -27,12 +26,16 @@ type SiffOption struct {
 	updates      []byte
 }
 
-func (s *SiffOption) SerializeOption() []byte {
-	buf := bytes.NewBuffer([]byte{s.flags, 0})
-	binary.Write(buf, binary.BigEndian, s.capabilities)
+func (s *SiffOption) serializeOption() []byte {
+	buf := bytes.Buffer{}
+    buf.WriteByte(s.flags)
+    buf.WriteByte(0)
+    buf.Write(s.capabilities)
 	if (s.flags & CapabilityUpdate) == CapabilityUpdate {
-		binary.Write(buf, binary.BigEndian, s.updates)
+        buf.Write(s.updates)
 	}
+
+    log.Println(buf.Bytes())
 
 	return buf.Bytes()
 }
@@ -41,9 +44,14 @@ func deserializeOption(arr []byte) SiffOption {
 	opt := SiffOption{
 		flags:        arr[0],
 		reserved:     0,
-		capabilities: arr[2:6],
-		updates:      arr[6:10],
 	}
+
+    if (opt.flags & IsSiff) == IsSiff || (opt.flags & Exp) == Exp {
+		opt.capabilities = arr[2:6]
+    }
+    if (opt.flags & CapabilityUpdate) == CapabilityUpdate {
+        opt.updates = arr[6:10]
+    }
 	return opt
 }
 
@@ -175,7 +183,9 @@ func calcCapability(packet *netfilter.NFPacket) byte {
 		hash := sha1.New()
 		hash.Sum(ipLayer.SrcIP)
 		hash.Sum(ipLayer.DstIP)
-		return hash.Sum([]byte(key))[hash.Size()-1]
+        sum := hash.Sum([]byte(key))[hash.Size()-1]
+        log.Println("calculated cap is", sum)
+		return sum
 	}
 	var s byte
 	return s
@@ -200,7 +210,7 @@ func shiftCapability(packet *netfilter.NFPacket) {
 		opt.capabilities[i] = opt.capabilities[i+1]
 	}
 	opt.capabilities[3] = 0
-	ipLayer.Options[0].OptionData = opt.SerializeOption()
+	ipLayer.Options[0].OptionData = opt.serializeOption()
 }
 
 func hasCapabilityUpdate(packet *netfilter.NFPacket) bool {
@@ -284,9 +294,7 @@ func addCapability(packet *netfilter.NFPacket, capability byte) {
 		opt := deserializeOption(ipLayer.Options[0].OptionData)
 		opt.capabilities = append([]byte{capability}, opt.capabilities...)
 		opt.capabilities = opt.capabilities[:4]
-		for i := 2; i < 6; i++ {
-			ipLayer.Options[0].OptionData = opt.SerializeOption()
-		}
+		ipLayer.Options[0].OptionData = opt.serializeOption()
 	}
 }
 
@@ -299,9 +307,7 @@ func addUpdate(packet *netfilter.NFPacket, capability byte) {
 		opt := deserializeOption(ipLayer.Options[0].OptionData)
 		opt.updates = append([]byte{capability}, opt.updates...)
 		opt.updates = opt.updates[:4]
-		for i := 6; i < 10; i++ {
-			ipLayer.Options[0].OptionData = opt.SerializeOption()
-		}
+	    ipLayer.Options[0].OptionData = opt.serializeOption()
 	}
 }
 
