@@ -27,7 +27,7 @@ func ProcessOutputPackets(updates chan PendingCU) {
 		log.Println("Adding SIFF headers")
 
 		// Empty arrays since don't know capability yet
-		caps := []byte{9, 9, 9, 9}
+		caps := []byte{8, 8, 8, 8}
 		var cu []byte
 		setExp := false
 
@@ -94,12 +94,11 @@ func ProcessForwardPackets() {
 			capabilities := getCapabilities(&packet)
 			if len(capabilities) < 1 || capabilities[0] != capability {
 				log.Println("Capability mismatch: ", fmt.Sprintf("%d %d, dropping", capability, capabilities))
-				packet.SetVerdict(netfilter.NF_DROP)
-				continue
+				log.Println("This packet is no longer privileged")
 			} else {
 				log.Println("Capability match, forwarding packet")
 			}
-			shiftCapability(&packet)
+			shiftCapability(&packet, capability)
 		} else {
 			log.Println("Got packet for", hostname(ip.DstIP))
 			packet.SetVerdict(netfilter.NF_ACCEPT)

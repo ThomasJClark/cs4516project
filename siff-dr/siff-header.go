@@ -143,7 +143,7 @@ func calcCapability(packet *netfilter.NFPacket) byte {
 	return s
 }
 
-func shiftCapability(packet *netfilter.NFPacket) {
+func shiftCapability(packet *netfilter.NFPacket, myCapability byte) {
 	var ipLayer *layers.IPv4
 	if layer := packet.Packet.Layer(layers.LayerTypeIPv4); layer != nil {
 		ipLayer = layer.(*layers.IPv4)
@@ -159,7 +159,7 @@ func shiftCapability(packet *netfilter.NFPacket) {
 	for i := 2; i < 5; i++ {
 		ipLayer.Options[0].OptionData[i] = ipLayer.Options[0].OptionData[i+1]
 	}
-	ipLayer.Options[0].OptionData[5] = 0
+	ipLayer.Options[0].OptionData[5] = myCapability
 }
 
 func hasCapabilityUpdate(packet *netfilter.NFPacket) bool {
