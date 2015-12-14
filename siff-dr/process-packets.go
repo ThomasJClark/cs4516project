@@ -31,17 +31,18 @@ func ProcessOutputPackets(updates chan PendingCU) {
 		var cu []byte
 		setExp := false
 
+		var flags uint8
+		flags |= IsSiff
 		select {
 		case update := <-updates:
 			log.Println("Got CU, Prepareing to send", update.cu)
 			cu = update.cu
 			setExp = update.exp
+			flags |= CapabilityUpdate
 		default:
 			log.Println("No CU, nothing to see here")
 		}
 
-		var flags uint8
-		flags |= IsSiff
 		if setExp {
 			flags |= Exp
 		}
