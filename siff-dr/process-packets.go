@@ -33,6 +33,8 @@ func ProcessOutputPackets(updates chan PendingCU) {
 
 		var flags uint8
 		flags |= IsSiff
+
+		//Put in capability update if one is waiting
 		select {
 		case update := <-updates:
 			log.Println("Got CU, Prepareing to send", update.cu)
@@ -46,6 +48,8 @@ func ProcessOutputPackets(updates chan PendingCU) {
 		if setExp {
 			flags |= Exp
 		}
+
+		//Make the packet siff
 		setSiffFields(&packet, flags, caps, cu)
 
 		if isExp(&packet) {
@@ -125,6 +129,7 @@ func ProcessInputPackets(updates chan PendingCU) {
 	for packet := range nfq.GetPackets() {
 
 		log.Println("INPUT - got a packet")
+		//Check for capability updates
 		if hasCapabilityUpdate(&packet) {
 			log.Println("INPUT Got capability Update")
 		}
