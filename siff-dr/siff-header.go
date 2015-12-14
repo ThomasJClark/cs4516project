@@ -178,10 +178,9 @@ func calcCapability(packet *netfilter.NFPacket) byte {
 		IP, destination IP, and a secret key. This allows the router to
 		identify flows it has previously approved without storing per-flow
 		state. */
-		hash := sha1.New()
 		value := ipLayer.SrcIP.String() + ipLayer.DstIP.String() + key
-		sum := hash.Sum([]byte(value))[hash.Size()-1]
-		return sum
+		sum := sha1.Sum([]byte(value))
+		return sum[len(sum)-1]
 	}
 	var s byte
 	return s
