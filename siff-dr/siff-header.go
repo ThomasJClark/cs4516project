@@ -28,30 +28,28 @@ type SiffOption struct {
 
 func (s *SiffOption) serializeOption() []byte {
 	buf := bytes.Buffer{}
-    buf.WriteByte(s.flags)
-    buf.WriteByte(0)
-    buf.Write(s.capabilities)
+	buf.WriteByte(s.flags)
+	buf.WriteByte(0)
+	buf.Write(s.capabilities)
 	if (s.flags & CapabilityUpdate) == CapabilityUpdate {
-        buf.Write(s.updates)
+		buf.Write(s.updates)
 	}
-
-    log.Println(buf.Bytes())
 
 	return buf.Bytes()
 }
 
 func deserializeOption(arr []byte) SiffOption {
 	opt := SiffOption{
-		flags:        arr[0],
-		reserved:     0,
+		flags:    arr[0],
+		reserved: 0,
 	}
 
-    if (opt.flags & IsSiff) == IsSiff || (opt.flags & Exp) == Exp {
+	if (opt.flags&IsSiff) == IsSiff || (opt.flags&Exp) == Exp {
 		opt.capabilities = arr[2:6]
-    }
-    if (opt.flags & CapabilityUpdate) == CapabilityUpdate {
-        opt.updates = arr[6:10]
-    }
+	}
+	if (opt.flags & CapabilityUpdate) == CapabilityUpdate {
+		opt.updates = arr[6:10]
+	}
 	return opt
 }
 
@@ -181,10 +179,8 @@ func calcCapability(packet *netfilter.NFPacket) byte {
 		identify flows it has previously approved without storing per-flow
 		state. */
 		hash := sha1.New()
-		hash.Sum(ipLayer.SrcIP)
-		hash.Sum(ipLayer.DstIP)
-        sum := hash.Sum([]byte(key))[hash.Size()-1]
-        log.Println("calculated cap is", sum)
+		value := ipLayer.SrcIP.String() + ipLayer.DstIP.String() + key
+		sum := hash.Sum([]byte(value))[hash.Size()-1]
 		return sum
 	}
 	var s byte
@@ -307,7 +303,7 @@ func addUpdate(packet *netfilter.NFPacket, capability byte) {
 		opt := deserializeOption(ipLayer.Options[0].OptionData)
 		opt.updates = append([]byte{capability}, opt.updates...)
 		opt.updates = opt.updates[:4]
-	    ipLayer.Options[0].OptionData = opt.serializeOption()
+		ipLayer.Options[0].OptionData = opt.serializeOption()
 	}
 }
 

@@ -117,11 +117,8 @@ func ProcessForwardPackets() {
 			addCapability(&packet, calcCapability(&packet))
 		} else if isExp(&packet) {
 			log.Println("Got exp packet")
-            log.Println(getOptions(&packet)[0])
 			capability := calcCapability(&packet)
-            log.Println(getOptions(&packet)[0])
 			addCapability(&packet, capability)
-            log.Println(getOptions(&packet)[0])
 		} else if isSiff(&packet) {
 			log.Println("Got SIFF packet for", hostname(ip.DstIP))
 			capability := calcCapability(&packet)
