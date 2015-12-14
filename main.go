@@ -38,6 +38,9 @@ func main() {
 		serveData()
 
 	case "siff-router":
+		go siffdr.DetectAttacks(func(){
+			log.Println("Timed Out - UNDER ATTACK!!!!!")
+		}, "legacy-router")
 		siffdr.ProcessForwardPackets()
 
 	case "legacy-router":
