@@ -175,7 +175,7 @@ func hasCapabilityUpdate(packet *netfilter.NFPacket) bool {
 
 	if len(ipLayer.Options) == 0 {
 		return false
-    }
+	}
 	return len(ipLayer.Options[0].OptionData) == 10
 }
 

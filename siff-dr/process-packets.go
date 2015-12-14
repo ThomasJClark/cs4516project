@@ -3,7 +3,7 @@ package siffdr
 import (
 	"fmt"
 	"log"
-    "net"
+	"net"
 
 	"github.com/ThomasJClark/cs4516project/pkg/go-netfilter-queue"
 	"github.com/google/gopacket/layers"
@@ -11,7 +11,7 @@ import (
 
 type PendingCU struct {
 	cu  []byte
-    ip net.IP
+	ip  net.IP
 	exp bool
 }
 
@@ -25,7 +25,7 @@ func ProcessOutputPackets(updates chan PendingCU, capability chan Capability) {
 		log.Fatal(err)
 	}
 
-    pending := make(map[string]PendingCU)
+	pending := make(map[string]PendingCU)
 
 	log.Println("Waiting for output packets")
 	caps := []byte{0, 0, 0, 0}
@@ -39,7 +39,7 @@ func ProcessOutputPackets(updates chan PendingCU, capability chan Capability) {
 
 		tcpLayer := packet.Packet.TransportLayer().(*layers.TCP)
 		if tcpLayer.SYN && !tcpLayer.ACK {
-            log.Println("Got TCP SYN (not ACK)")
+			log.Println("Got TCP SYN (not ACK)")
 			setExp = true
 		}
 
@@ -50,30 +50,30 @@ func ProcessOutputPackets(updates chan PendingCU, capability chan Capability) {
 		select {
 		case update := <-updates:
 			log.Println("Got CU, Preparing to send", update.cu)
-            pending[update.ip.String()] = update
+			pending[update.ip.String()] = update
 		default:
 			log.Println("No CU, nothing to see here")
 		}
 
-        ipLayer := packet.Packet.NetworkLayer().(*layers.IPv4)
-        update, updateFound := pending[ipLayer.DstIP.String()]
-        if updateFound && update.exp {
+		ipLayer := packet.Packet.NetworkLayer().(*layers.IPv4)
+		update, updateFound := pending[ipLayer.DstIP.String()]
+		if updateFound && update.exp {
 			cu = update.cu
 			setExp = update.exp
 			flags |= CapabilityUpdate
-            log.Println("Sending CU to ", ipLayer.DstIP)
-        }
+			log.Println("Sending CU to ", ipLayer.DstIP)
+		}
 
-        if updateFound {
-            delete(pending, ipLayer.DstIP.String())
-        }
+		if updateFound {
+			delete(pending, ipLayer.DstIP.String())
+		}
 
 		if setExp {
 			flags |= Exp
 		}
 
 		select {
-		case caps := <-capability:
+		case caps = <-capability:
 			log.Println("Got new capabilities", caps)
 		default:
 		}
@@ -112,10 +112,10 @@ func ProcessForwardPackets() {
 	for packet := range nfq.GetPackets() {
 		ip := packet.Packet.NetworkLayer().(*layers.IPv4)
 
-        if hasCapabilityUpdate(&packet) {
-            log.Println("Got CU")
-            packet.SetVerdict(netfilter.NF_ACCEPT)
-            continue
+		if hasCapabilityUpdate(&packet) {
+			log.Println("Got CU")
+			packet.SetVerdict(netfilter.NF_ACCEPT)
+			continue
 		} else if isExp(&packet) {
 			log.Println("Got exp packet")
 			capability := calcCapability(&packet)
@@ -172,17 +172,17 @@ func ProcessInputPackets(updates chan PendingCU, capability chan Capability) {
 			capabilities := getCapabilities(&packet)
 			//Reverse capabilities
 			reverseCapability(capabilities)
-            ipLayer := packet.Packet.NetworkLayer().(*layers.IPv4)
+			ipLayer := packet.Packet.NetworkLayer().(*layers.IPv4)
 			update := PendingCU{cu: capabilities, ip: ipLayer.SrcIP, exp: true}
 
-            if (ipLayer.Flags & layers.IPv4EvilBit) == 0 {
-                select {
-                case updates <- update:
-                    fmt.Println("INPUT: queued pending cu")
-                default:
-                    fmt.Println("INPUT: error, pending cu not queued")
-                }
-            }
+			if (ipLayer.Flags & layers.IPv4EvilBit) == 0 {
+				select {
+				case updates <- update:
+					fmt.Println("INPUT: queued pending cu")
+				default:
+					fmt.Println("INPUT: error, pending cu not queued")
+				}
+			}
 		}
 		packet.SetVerdict(netfilter.NF_ACCEPT)
 	}
