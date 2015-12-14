@@ -22,12 +22,15 @@ func ProcessOutputPackets() {
 		log.Println("Adding SIFF headers")
 
 		// Empty arrays since don't know capability yet
-		caps := []byte{9, 9, 9, 9}
+		var empty []byte
 		var empty2 []byte
 		var flags uint8
-		flags |= IsSiff
-		setSiffFields(&packet, flags, caps, empty2)
+		flags |= Exp
+		setSiffFields(&packet, flags, empty, empty2)
 
+		if isExp(&packet) {
+			log.Println("Packet is EXP")
+		}
 		if isSiff(&packet) {
 			log.Println("Packet is SIFF")
 		}
@@ -57,35 +60,36 @@ func ProcessForwardPackets() {
 	for packet := range nfq.GetPackets() {
 		ip := packet.Packet.NetworkLayer().(*layers.IPv4)
 
-		if isSiff(&packet) {
+		if isExp(&packet) {
+			log.Println("Got exp packet")
+			capability := calcCapability(&packet)
+			addCapability(&packet, capability)
+			log.Println(getCapabilities(&packet))
+		} else if isSiff(&packet) {
 			log.Println("Got SIFF packet for", hostname(ip.DstIP))
 			capability := calcCapability(&packet)
-			if isExp(&packet) {
-				addCapability(&packet, capability)
-			} else {
-				capabilities := getCapabilities(&packet)
-				shiftCapability(&packet)
-				if len(capabilities) < 1 || capabilities[0] != capability {
-					log.Println("Capability mismatch: ", fmt.Sprintf("%c %c, dropping", capability, capabilities))
-					packet.SetVerdict(netfilter.NF_DROP)
-					continue
-				} else {
-					log.Println("Capability match, forwarding packet")
-				}
-			}
-			serializedPacket, err := serialize(packet.Packet.NetworkLayer().(*layers.IPv4))
-			if err != nil {
-				log.Println(err)
-				log.Println("Failed to serialize packet, dropping")
+			capabilities := getCapabilities(&packet)
+			shiftCapability(&packet)
+			if len(capabilities) < 1 || capabilities[0] != capability {
+				log.Println("Capability mismatch: ", fmt.Sprintf("%c %c, dropping", capability, capabilities))
 				packet.SetVerdict(netfilter.NF_DROP)
+				continue
 			} else {
-				packet.SetResult(netfilter.NF_ACCEPT, serializedPacket)
+				log.Println("Capability match, forwarding packet")
 			}
-			continue
 		} else {
 			log.Println("Got packet for", hostname(ip.DstIP))
+			packet.SetVerdict(netfilter.NF_ACCEPT)
+			continue
 		}
 
-		packet.SetVerdict(netfilter.NF_ACCEPT)
+		serializedPacket, err := serialize(packet.Packet.NetworkLayer().(*layers.IPv4))
+		if err != nil {
+			log.Println(err)
+			log.Println("Failed to serialize packet, dropping")
+			packet.SetVerdict(netfilter.NF_DROP)
+		} else {
+			packet.SetResult(netfilter.NF_ACCEPT, serializedPacket)
+		}
 	}
 }
