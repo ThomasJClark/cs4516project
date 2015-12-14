@@ -35,11 +35,8 @@ func ProcessOutputPackets() {
 			log.Println("Packet is SIFF")
 		}
 
-		log.Println(packet.Packet.TransportLayer().(*layers.TCP))
-		//packet.SetVerdict(netfilter.NF_ACCEPT)
 		// Get serialization of modified packet
 		serializedPacket, err := serialize(packet.Packet.NetworkLayer().(*layers.IPv4))
-		log.Println(serializedPacket)
 		if err != nil {
 			log.Println(err)
 			log.Println("Failed to serialize packet, dropping")
@@ -69,8 +66,6 @@ func ProcessForwardPackets() {
 			log.Println(getCapabilities(&packet))
 		} else if isSiff(&packet) {
 			log.Println("Got SIFF packet for", hostname(ip.DstIP))
-			serializedPacket, _ := serialize(packet.Packet.NetworkLayer().(*layers.IPv4))
-			log.Println(serializedPacket)
 			capability := calcCapability(&packet)
 			capabilities := getCapabilities(&packet)
 			if len(capabilities) < 1 || capabilities[0] != capability {
@@ -88,7 +83,6 @@ func ProcessForwardPackets() {
 		}
 
 		serializedPacket, err := serialize(packet.Packet.NetworkLayer().(*layers.IPv4))
-		log.Println(serializedPacket)
 		if err != nil {
 			log.Println(err)
 			log.Println("Failed to serialize packet, dropping")
