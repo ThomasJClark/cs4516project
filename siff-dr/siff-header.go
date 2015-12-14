@@ -5,6 +5,7 @@ import (
 	"crypto/sha1"
 	"encoding/binary"
 	"log"
+	"os"
 
 	"github.com/ThomasJClark/cs4516project/pkg/go-netfilter-queue"
 	"github.com/google/gopacket/layers"
@@ -161,16 +162,20 @@ func isExp(packet *netfilter.NFPacket) bool {
 
 func calcCapability(packet *netfilter.NFPacket) byte {
 	var ipLayer *layers.IPv4
-	/*Get the IPv4 layer, or ignore it if it doesn't exist. */
+	key, _ := os.Hostname() // No one will ever guess this!
+
+	/* Get the IPv4 layer, or ignore it if it doesn't exist. */
 	if layer := packet.Packet.Layer(layers.LayerTypeIPv4); layer != nil {
 		ipLayer = layer.(*layers.IPv4)
-		// Append src and dest ip
-		value := ipLayer.SrcIP.String() + ipLayer.DstIP.String()
-		key := "This is a secure key right?"
+
+		/* The capability value is the last byte of a SHA1 hash of the source
+		IP, destination IP, and a secret key. This allows the router to
+		identify flows it has previously approved without storing per-flow
+		state. */
 		hash := sha1.New()
-		// Get checksum of IPs with key
-		checksum := hash.Sum([]byte(value + key))
-		return checksum[len(checksum)-1]
+		hash.Sum(ipLayer.SrcIP)
+		hash.Sum(ipLayer.DstIP)
+		return hash.Sum([]byte(key))[hash.Size()-1]
 	}
 	var s byte
 	return s
