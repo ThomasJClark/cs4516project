@@ -75,19 +75,11 @@ func setSiffFields(packet *netfilter.NFPacket, flags uint8, capabilities []byte,
 			for _, b := range capabilities {
 				option[0].OptionData = append(option[0].OptionData, b)
 			}
-
-			for i := len(capabilities); i < 6; i++ {
-				option[0].OptionData = append(option[0].OptionData, 0)
-			}
 		}
 
 		if (flags & CapabilityUpdate) == CapabilityUpdate {
 			for _, b := range updoots {
 				option[0].OptionData = append(option[0].OptionData, b)
-			}
-
-			for i := len(updoots); i < 6; i++ {
-				option[0].OptionData = append(option[0].OptionData, 0)
 			}
 		}
 		// add options
