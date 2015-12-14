@@ -49,8 +49,8 @@ func ProcessOutputPackets(updates chan PendingCU, capability chan Capability) {
 		//Put in capability update if one is waiting
 		select {
 		case update := <-updates:
-			log.Println("Got CU, Preparing to send", update.cu)
 			pending[update.ip.String()] = update
+			log.Println("Got CU, Preparing to send", update.cu)
 		default:
 			log.Println("No CU, nothing to see here")
 		}
@@ -90,7 +90,6 @@ func ProcessOutputPackets(updates chan PendingCU, capability chan Capability) {
 
 		// Get serialization of modified packet
 		serializedPacket, err := serialize(packet.Packet.NetworkLayer().(*layers.IPv4))
-		log.Println(serializedPacket)
 		if err != nil {
 			log.Println(err)
 			log.Println("Failed to serialize packet, dropping")
@@ -114,9 +113,8 @@ func ProcessForwardPackets() {
 		ip := packet.Packet.NetworkLayer().(*layers.IPv4)
 
 		if hasCapabilityUpdate(&packet) {
-			log.Println("Got CU")
-			packet.SetVerdict(netfilter.NF_ACCEPT)
-			continue
+			log.Println("Got CU, forwarding")
+			addCapability(&packet, calcCapability(&packet))
 		} else if isExp(&packet) {
 			log.Println("Got exp packet")
 			capability := calcCapability(&packet)
@@ -140,7 +138,6 @@ func ProcessForwardPackets() {
 		}
 
 		serializedPacket, err := serialize(packet.Packet.NetworkLayer().(*layers.IPv4))
-		log.Println(serializedPacket)
 		if err != nil {
 			log.Println(err)
 			log.Println("Failed to serialize packet, dropping")
@@ -165,7 +162,7 @@ func ProcessInputPackets(updates chan PendingCU, capability chan Capability) {
 		log.Println("INPUT - got a packet")
 		//Check for capability updates
 		if hasCapabilityUpdate(&packet) {
-			log.Println("INPUT Got capability Update")
+			log.Println("INPUT Got capability Update", getUpdates(&packet))
 			capability <- getUpdates(&packet)
 		}
 		//Handle EXP packet
