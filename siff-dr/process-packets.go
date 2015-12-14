@@ -27,20 +27,24 @@ func ProcessOutputPackets(updates chan PendingCU) {
 		log.Println("Adding SIFF headers")
 
 		// Empty arrays since don't know capability yet
-		caps := []byte{7, 8, 9, 10}
+		caps := []byte{9, 9, 9, 9}
 		var cu []byte
+		setExp := false
 
-		//TODO handle sending exp
 		select {
 		case update := <-updates:
 			log.Println("Got CU, Prepareing to send", update.cu)
 			cu = update.cu
+			setExp = update.exp
 		default:
 			log.Println("No CU, nothing to see here")
 		}
 
 		var flags layers.IPv4Flag
 		flags |= IS_SIFF
+		if setExp {
+			flags |= EXP
+		}
 		setSiffFields(&packet, flags, caps, cu)
 
 		if isSiff(&packet) {
@@ -117,6 +121,10 @@ func ProcessInputPackets(updates chan PendingCU) {
 	for packet := range nfq.GetPackets() {
 
 		log.Println("INPUT - got a packet")
+		if hasCapabilityUpdate(&packet) {
+			log.Println("INPUT Got capability Update")
+		}
+		//Handle EXP packet
 		if isSiff(&packet) && isExp(&packet) {
 			log.Println("INPUT - Recvd pkt is EXP SIFF")
 			capabilities := getCapabilities(&packet)
