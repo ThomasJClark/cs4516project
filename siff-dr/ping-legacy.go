@@ -1,13 +1,13 @@
 package siffdr
 
 import (
-	"github.com/tatsushid/go-fastping"
 	"net"
 	"time"
 
+	"github.com/tatsushid/go-fastping"
+
 	"log"
 )
-
 
 /*
 DetectAttacks continuously pings a legacy router with the given addr until the
@@ -15,7 +15,7 @@ legacy router ceases to return pings, at which point the siff router running
 DetectAttacks freaks the f*** out and declares the legacy router is under a DDOS
 attack
 */
-func DetectAttacks(callback func(), addr string){
+func DetectAttacks(callback func(), addr string) {
 	// create pinger and set the IP address if it is a real IP address
 	// (otherwise throw a fit)
 	p := fastping.NewPinger()
@@ -40,6 +40,7 @@ func DetectAttacks(callback func(), addr string){
 
 	// called at the end of a loop of p.RunLoop()
 	p.OnIdle = func() {
+		log.Println("Idle")
 		// if no ping has been received, exit and go back to the main function
 		if !received {
 			callback()
@@ -50,6 +51,8 @@ func DetectAttacks(callback func(), addr string){
 		timer.Reset(time.Second)
 		received = false
 	}
+
+	log.Println("pinging...")
 
 	// GOOOOOOOOOOOOOOOOOOOOOO!!!!!!!!!!!!!!!!!!!!
 	p.RunLoop()
@@ -64,4 +67,6 @@ func DetectAttacks(callback func(), addr string){
 	if p.Err() != nil {
 		log.Fatal(p.Err())
 	}
+
+	log.Println("finished pinging")
 }

@@ -11,6 +11,11 @@ import (
 /*DropPackets start netfilter queue and process packets, dropping drop percent
 of them*/
 func DropPackets(drop int) {
+	go dropForwardPackets(drop)
+	dropInputPackets(drop)
+}
+
+func dropForwardPackets(drop int) {
 	nfq, err := netfilter.NewNFQueue(0, 100000, 0xffff)
 	if err != nil {
 		log.Fatal(err)
@@ -29,6 +34,27 @@ func DropPackets(drop int) {
 		dropP := rand.Intn(100)
 		if dropP < drop {
 			log.Println("Never mind, randomly dropping packet")
+			packet.SetVerdict(netfilter.NF_DROP)
+		} else {
+			packet.SetVerdict(netfilter.NF_ACCEPT)
+		}
+
+	}
+}
+
+func dropInputPackets(drop int) {
+	nfq, err := netfilter.NewNFQueue(1, 100000, 0xffff)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	log.Println("Waiting for packets to drop")
+	for packet := range nfq.GetPackets() {
+		log.Println("Got a ping (probably?)")
+
+		dropP := rand.Intn(100)
+		if dropP < drop {
+			log.Println("lol not responding to ping")
 			packet.SetVerdict(netfilter.NF_DROP)
 		} else {
 			packet.SetVerdict(netfilter.NF_ACCEPT)

@@ -37,10 +37,12 @@ func ProcessOutputPackets(updates chan PendingCU, capability chan Capability) {
 		var cu []byte
 		setExp := false
 
-		tcpLayer := packet.Packet.TransportLayer().(*layers.TCP)
-		if tcpLayer.SYN && !tcpLayer.ACK {
-			log.Println("Got TCP SYN (not ACK)")
-			setExp = true
+		if packet.Packet.Layer(layers.LayerTypeTCP) != nil {
+			tcpLayer := packet.Packet.TransportLayer().(*layers.TCP)
+			if tcpLayer.SYN && !tcpLayer.ACK {
+				log.Println("Got TCP SYN (not ACK)")
+				setExp = true
+			}
 		}
 
 		var flags uint8
@@ -125,8 +127,7 @@ func ProcessForwardPackets() {
 			capabilities := getCapabilities(&packet)
 			if len(capabilities) < 1 || capabilities[0] != capability {
 				log.Println("Capability mismatch: ", fmt.Sprintf("%d %d, dropping", capability, capabilities))
-				packet.SetVerdict(netfilter.NF_DROP)
-				continue
+				log.Println("This packet is no longer privileged")
 			} else {
 				log.Println("Capability match, forwarding packet")
 			}
