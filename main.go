@@ -19,12 +19,13 @@ func main() {
 	log.SetFlags(log.Ltime)
 	log.Println("STARTING")
 
-	messages := make(chan siffdr.PendingCU, 2)
+	updates := make(chan siffdr.PendingCU, 2)
+	capability := make(chan siffdr.Capability, 2)
 
 	switch *modeStr {
 	case "client":
-		go siffdr.ProcessOutputPackets(messages)
-		go siffdr.ProcessInputPackets(messages)
+		go siffdr.ProcessOutputPackets(updates, capability)
+		go siffdr.ProcessInputPackets(updates, capability)
 		requestData()
 
 	case "attacker":
@@ -32,8 +33,8 @@ func main() {
 		requestData()
 
 	case "server":
-		go siffdr.ProcessOutputPackets(messages)
-		go siffdr.ProcessInputPackets(messages)
+		go siffdr.ProcessOutputPackets(updates, capability)
+		go siffdr.ProcessInputPackets(updates, capability)
 		serveData()
 
 	case "siff-router":
