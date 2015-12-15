@@ -125,8 +125,7 @@ func ProcessForwardPackets() {
 			capabilities := getCapabilities(&packet)
 			if len(capabilities) < 1 || capabilities[0] != capability {
 				log.Println("Capability mismatch: ", fmt.Sprintf("%d %d, dropping", capability, capabilities))
-				packet.SetVerdict(netfilter.NF_DROP)
-				continue
+				log.Println("This packet is no longer privileged")
 			} else {
 				log.Println("Capability match, forwarding packet")
 			}
