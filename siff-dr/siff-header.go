@@ -1,8 +1,10 @@
 package siffdr
 
 import (
+	"bytes"
 	"crypto/sha1"
 	"log"
+	"os"
 
 	"github.com/ThomasJClark/cs4516project/pkg/go-netfilter-queue"
 	"github.com/google/gopacket/layers"
@@ -16,6 +18,40 @@ const (
 	IsSiff           uint8 = 1 << 1 // Specify a SIFF packet
 	CapabilityUpdate uint8 = 1 << 0 // includes capability update
 )
+
+type SiffOption struct {
+	flags        byte
+	reserved     byte
+	capabilities []byte
+	updates      []byte
+}
+
+func (s *SiffOption) serializeOption() []byte {
+	buf := bytes.Buffer{}
+	buf.WriteByte(s.flags)
+	buf.WriteByte(0)
+	buf.Write(s.capabilities)
+	if (s.flags & CapabilityUpdate) == CapabilityUpdate {
+		buf.Write(s.updates)
+	}
+
+	return buf.Bytes()
+}
+
+func deserializeOption(arr []byte) SiffOption {
+	opt := SiffOption{
+		flags:    arr[0],
+		reserved: 0,
+	}
+
+	if (opt.flags&IsSiff) == IsSiff || (opt.flags&Exp) == Exp {
+		opt.capabilities = arr[2:6]
+	}
+	if (opt.flags & CapabilityUpdate) == CapabilityUpdate {
+		opt.updates = arr[6:10]
+	}
+	return opt
+}
 
 /* Adds the SIFF header to a packet, or modifies it in the case that it already
 exists. Pass in the NFPacket, the flags (bitwise OR them if you need both), and
@@ -106,7 +142,9 @@ func isSiff(packet *netfilter.NFPacket) bool {
 	if len(ipLayer.Options) == 0 {
 		return false
 	}
-	return (ipLayer.Options[0].OptionData[0] & byte(IsSiff)) == byte(IsSiff)
+
+	opt := deserializeOption(ipLayer.Options[0].OptionData)
+	return (opt.flags & byte(IsSiff)) == byte(IsSiff)
 }
 
 func isExp(packet *netfilter.NFPacket) bool {
@@ -123,21 +161,26 @@ func isExp(packet *netfilter.NFPacket) bool {
 	if len(ipLayer.Options) == 0 {
 		return false
 	}
-	return (ipLayer.Options[0].OptionData[0] & byte(Exp)) == byte(Exp)
+
+	opt := deserializeOption(ipLayer.Options[0].OptionData)
+	return (opt.flags & byte(Exp)) == byte(Exp)
 }
 
 func calcCapability(packet *netfilter.NFPacket) byte {
 	var ipLayer *layers.IPv4
-	/*Get the IPv4 layer, or ignore it if it doesn't exist. */
+	key, _ := os.Hostname() // No one will ever guess this!
+
+	/* Get the IPv4 layer, or ignore it if it doesn't exist. */
 	if layer := packet.Packet.Layer(layers.LayerTypeIPv4); layer != nil {
 		ipLayer = layer.(*layers.IPv4)
-		// Append src and dest ip
-		value := ipLayer.SrcIP.String() + ipLayer.DstIP.String()
-		key := "This is a secure key right?"
-		hash := sha1.New()
-		// Get checksum of IPs with key
-		checksum := hash.Sum([]byte(value + key))
-		return checksum[len(checksum)-1]
+
+		/* The capability value is the last byte of a SHA1 hash of the source
+		IP, destination IP, and a secret key. This allows the router to
+		identify flows it has previously approved without storing per-flow
+		state. */
+		value := ipLayer.SrcIP.String() + ipLayer.DstIP.String() + key
+		sum := sha1.Sum([]byte(value))
+		return sum[len(sum)-1]
 	}
 	var s byte
 	return s
@@ -153,13 +196,16 @@ func shiftCapability(packet *netfilter.NFPacket, myCapability byte) {
 		return
 	}
 
+	opt := deserializeOption(ipLayer.Options[0].OptionData)
+
 	// Cut out empty options (more seem to get added for some reason at each hop)
 	//(*ipLayer).Options = (*ipLayer).Options[:(*ipLayer).IHL-6]
 	// Shift all towards 0
-	for i := 2; i < 5; i++ {
-		ipLayer.Options[0].OptionData[i] = ipLayer.Options[0].OptionData[i+1]
+	for i := 0; i < 3; i++ {
+		opt.capabilities[i] = opt.capabilities[i+1]
 	}
-	ipLayer.Options[0].OptionData[5] = myCapability
+	opt.capabilities[3] = 0
+	ipLayer.Options[0].OptionData = opt.serializeOption()
 }
 
 func hasCapabilityUpdate(packet *netfilter.NFPacket) bool {
@@ -176,7 +222,8 @@ func hasCapabilityUpdate(packet *netfilter.NFPacket) bool {
 	if len(ipLayer.Options) == 0 {
 		return false
 	}
-	return len(ipLayer.Options[0].OptionData) == 12
+	opt := deserializeOption(ipLayer.Options[0].OptionData)
+	return (opt.flags & CapabilityUpdate) == CapabilityUpdate
 }
 
 func getOptions(packet *netfilter.NFPacket) []layers.IPv4Option {
@@ -200,8 +247,9 @@ func getCapabilities(packet *netfilter.NFPacket) []byte {
 		ipLayer = layer.(*layers.IPv4)
 	}
 
+	opt := deserializeOption(ipLayer.Options[0].OptionData)
 	if ipLayer.Options != nil {
-		return ipLayer.Options[0].OptionData[2:6]
+		return opt.capabilities
 	} else {
 		return nil
 	}
@@ -220,8 +268,9 @@ func getUpdates(packet *netfilter.NFPacket) []byte {
 		ipLayer = layer.(*layers.IPv4)
 	}
 
+	opt := deserializeOption(ipLayer.Options[0].OptionData)
 	if ipLayer.Options != nil {
-		return ipLayer.Options[0].OptionData[7:]
+		return opt.updates
 	} else {
 		return nil
 	}
@@ -237,13 +286,10 @@ func addCapability(packet *netfilter.NFPacket, capability byte) {
 	}
 
 	if (*ipLayer).Options != nil {
-		capabilities := getCapabilities(packet)
-		capabilities = append([]byte{capability}, capabilities...)
-		capabilities = capabilities[:4]
-		for i := 2; i < 6; i++ {
-			log.Println(capabilities)
-			ipLayer.Options[0].OptionData[i] = capabilities[i-2]
-		}
+		opt := deserializeOption(ipLayer.Options[0].OptionData)
+		opt.capabilities = append([]byte{capability}, opt.capabilities...)
+		opt.capabilities = opt.capabilities[:4]
+		ipLayer.Options[0].OptionData = opt.serializeOption()
 	}
 }
 
@@ -253,12 +299,10 @@ func addUpdate(packet *netfilter.NFPacket, capability byte) {
 	/* Get the IPv4 layer, and if it doesn't exist, keep doing shit
 	   I can't be arsed for proper response outside the bounds of this project */
 	if ipLayer.Options != nil {
-		updates := getUpdates(packet)
-		updates = append([]byte{capability}, updates...)
-		updates = updates[:4]
-		for i := 6; i < 10; i++ {
-			ipLayer.Options[0].OptionData[i] = updates[i-6]
-		}
+		opt := deserializeOption(ipLayer.Options[0].OptionData)
+		opt.updates = append([]byte{capability}, opt.updates...)
+		opt.updates = opt.updates[:4]
+		ipLayer.Options[0].OptionData = opt.serializeOption()
 	}
 }
 
@@ -277,5 +321,4 @@ func reverseCapability(capability []byte) {
 		capability[length-i] = capability[i]
 		capability[i] = temp
 	}
-
 }
