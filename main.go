@@ -27,8 +27,9 @@ func main() {
 	case "client":
 		go siffdr.ProcessOutputPackets(updates, capability)
 		go siffdr.ProcessInputPackets(updates, capability)
+
 		time.Sleep(1)
-		requestData()
+		measureData(100)
 
 	case "attacker":
 		go siffdr.MakePacketsEvil()
