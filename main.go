@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"log"
+	"time"
 
 	"github.com/ThomasJClark/cs4516project/siff-dr"
 )
@@ -26,10 +27,12 @@ func main() {
 	case "client":
 		go siffdr.ProcessOutputPackets(updates, capability)
 		go siffdr.ProcessInputPackets(updates, capability)
+		time.Sleep(1)
 		requestData()
 
 	case "attacker":
 		go siffdr.MakePacketsEvil()
+		time.Sleep(1)
 		requestData()
 
 	case "server":
@@ -38,7 +41,7 @@ func main() {
 		serveData()
 
 	case "siff-router":
-		go siffdr.DetectAttacks(func(){
+		go siffdr.DetectAttacks(func() {
 			log.Println("Timed Out - UNDER ATTACK!!!!!")
 		}, "legacy-router")
 		siffdr.ProcessForwardPackets()

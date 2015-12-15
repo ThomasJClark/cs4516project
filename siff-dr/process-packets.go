@@ -129,7 +129,7 @@ func ProcessForwardPackets() {
 			} else {
 				log.Println("Capability match, forwarding packet")
 			}
-			shiftCapability(&packet, capability)
+			shiftCapability(&packet)
 		} else {
 			log.Println("Got packet for", hostname(ip.DstIP))
 			packet.SetVerdict(netfilter.NF_ACCEPT)
